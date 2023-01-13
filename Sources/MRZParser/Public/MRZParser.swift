@@ -28,21 +28,28 @@ public struct MRZParser {
 
         guard mrzCode.isValid else { return nil }
 
-        let documentType = mrzCode.documentTypeField.value
+        let documentType = MRZResult.DocumentType.allCases.first {
+            $0.identifier == mrzCode.documentTypeField.value.first
+        } ?? .undefined
+        let documentTypeAdditional = mrzCode.documentTypeField.value.count == 2
+            ? mrzCode.documentTypeField.value.last
+            : nil
+        let sex = MRZResult.Sex.allCases.first {
+            $0.identifier.contains(mrzCode.sexField.value)
+        } ?? .unspecified
+        let documentNumber = makeDocumentNumberString(from: mrzCode)
 
         return .init(
             format: format,
-            documentType: MRZResult.DocumentType.allCases.first { $0.identifier == documentType.first } ?? .undefined,
-            documentTypeAdditional: documentType.count == 2 ? documentType.last : nil,
+            documentType: documentType,
+            documentTypeAdditional: documentTypeAdditional,
             countryCode: mrzCode.countryCodeField.value,
             surnames: mrzCode.namesField.surnames,
             givenNames: mrzCode.namesField.givenNames,
-            documentNumber: mrzCode.documentNumberField.value,
+            documentNumber: documentNumber,
             nationalityCountryCode: mrzCode.nationalityField.value,
             birthdate: mrzCode.birthdateField.value,
-            sex: MRZResult.Sex.allCases.first(where: {
-                $0.identifier.contains(mrzCode.sexField.value)
-            }) ?? .unspecified,
+            sex: sex,
             expiryDate: mrzCode.expiryDateField.value,
             optionalData: mrzCode.optionalDataField.value,
             optionalData2: mrzCode.optionalData2Field?.value
@@ -70,5 +77,15 @@ public struct MRZParser {
               !mrzLines.contains(where: { $0.count != lineLength }) else { return nil }
         return lineLength
     }
-}
 
+    private func makeDocumentNumberString(from mrzCode: MRZCode) -> String {
+        var number = mrzCode.documentNumberField.value
+        if mrzCode.documentTypeField.value == "PN"
+            && mrzCode.countryCodeField.value == "RUS"
+            && mrzCode.documentNumberField.value.count == 9,
+            let hiddenDigit = mrzCode.optionalDataField.value.first {
+            number.insert(hiddenDigit, at: number.index(number.startIndex, offsetBy: 3))
+        }
+        return number
+    }
+}
