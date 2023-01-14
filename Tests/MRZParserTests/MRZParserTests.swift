@@ -133,7 +133,7 @@ final class MRZParserTests: XCTestCase {
             countryCode: "RUS",
             surnames: "ZDRIL7K",
             givenNames: "SERGEQ ANATOL9EVI3",
-            documentNumber: "391935349",
+            documentNumber: "3914935349",
             nationalityCountryCode: "RUS",
             birthdate:  dateFormatter.date(from: "720723")!,
             sex: .male,
