@@ -80,12 +80,15 @@ public struct MRZParser {
 
     private func makeDocumentNumberString(from mrzCode: MRZCode) -> String {
         var number = mrzCode.documentNumberField.value
+
+        // Exceptional condition for Russian national passport
         if mrzCode.documentTypeField.value == "PN"
             && mrzCode.countryCodeField.value == "RUS"
             && mrzCode.documentNumberField.value.count == 9,
             let hiddenDigit = mrzCode.optionalDataField.value.first {
             number.insert(hiddenDigit, at: number.index(number.startIndex, offsetBy: 3))
         }
+
         return number
     }
 }
