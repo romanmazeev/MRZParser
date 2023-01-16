@@ -143,7 +143,7 @@ Optional data | ""
 
 ## Credits
 
-The project started as a fork of the public repository which I created when was working in [App In The Air](https://github.com/appintheair).
+The project started as a fork of the [public repository](https://github.com/appintheair/MRZParser) which I created when was working in [App In The Air](https://github.com/appintheair).
 
 ## License
 
