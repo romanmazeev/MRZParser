@@ -31,7 +31,7 @@ public enum MRZFormat: CaseIterable {
     }
 }
 
-public struct MRZResult: Hashable {
+public struct MRZResult {
     public enum DocumentType: CaseIterable {
         case visa
         case passport
