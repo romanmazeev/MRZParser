@@ -217,21 +217,3 @@ final class MRZParserTests: XCTestCase {
         XCTAssertEqual(parser.parse(mrzString: mrzString), result)
     }
 }
-
-extension MRZResult: Equatable {
-    public static func == (lhs: MRZResult, rhs: MRZResult) -> Bool {
-        lhs.format == rhs.format &&
-        lhs.documentType == rhs.documentType &&
-        lhs.documentTypeAdditional == rhs.documentTypeAdditional &&
-        lhs.countryCode == rhs.countryCode &&
-        lhs.surnames == rhs.surnames &&
-        lhs.givenNames == rhs.givenNames &&
-        lhs.documentNumber == rhs.documentNumber &&
-        lhs.nationalityCountryCode == rhs.nationalityCountryCode &&
-        lhs.birthdate == rhs.birthdate &&
-        lhs.sex == rhs.sex &&
-        lhs.expiryDate == rhs.expiryDate &&
-        lhs.optionalData == rhs.optionalData &&
-        lhs.optionalData2 == rhs.optionalData2
-    }
-}

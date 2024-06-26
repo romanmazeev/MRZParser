@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum MRZFormat: CaseIterable {
+public enum MRZFormat: Sendable, CaseIterable {
     case td1, td2, td3
 
     public var lineLength: Int {
@@ -31,8 +31,8 @@ public enum MRZFormat: CaseIterable {
     }
 }
 
-public struct MRZResult {
-    public enum DocumentType: CaseIterable {
+public struct MRZResult: Sendable, Hashable {
+    public enum DocumentType: Sendable, CaseIterable {
         case visa
         case passport
         case id
@@ -52,7 +52,7 @@ public struct MRZResult {
         }
     }
 
-    public enum Sex: CaseIterable {
+    public enum Sex: Sendable, CaseIterable {
         case male
         case female
         case unspecified
