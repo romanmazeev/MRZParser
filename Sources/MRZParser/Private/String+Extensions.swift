@@ -7,15 +7,11 @@
 
 import Foundation
 
-// MARK: Parser related
 extension String {
     var trimmingFillers: String {
         return trimmingCharacters(in: CharacterSet(charactersIn: "<"))
     }
-}
 
-// MARK: Generic
-extension String {
     func replace(_ target: String, with: String) -> String {
         replacingOccurrences(of: target, with: with, options: .literal, range: nil)
     }
