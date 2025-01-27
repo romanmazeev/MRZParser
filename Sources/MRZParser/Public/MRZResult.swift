@@ -69,6 +69,7 @@ public struct MRZResult: Sendable, Hashable {
         }
     }
 
+    public let mrzKey: String
     public let format: MRZFormat
     public let documentType: DocumentType
     public let documentTypeAdditional: Character?
@@ -84,6 +85,7 @@ public struct MRZResult: Sendable, Hashable {
     public let optionalData2: String?
 
     public init(
+        mrzKey: String,
         format: MRZFormat,
         documentType: DocumentType,
         documentTypeAdditional: Character?,
@@ -98,6 +100,7 @@ public struct MRZResult: Sendable, Hashable {
         optionalData: String?,
         optionalData2: String?
     ) {
+        self.mrzKey = mrzKey
         self.format = format
         self.documentType = documentType
         self.documentTypeAdditional = documentTypeAdditional

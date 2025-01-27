@@ -24,6 +24,7 @@ final class MRZParserTests: XCTestCase {
                         ERIKSSON<<ANNA<MARIA<<<<<<<<<<
                         """
         let result = MRZResult(
+            mrzKey: "D23145890774081221204159",
             format: .td1,
             documentType: .id,
             documentTypeAdditional: nil,
@@ -49,6 +50,7 @@ final class MRZParserTests: XCTestCase {
                         D231458907UTO7408122F1204159<<<<<<<6
                         """
         let result = MRZResult(
+            mrzKey: "D23145890774081221204159",
             format: .td2,
             documentType: .id,
             documentTypeAdditional: "R",
@@ -74,6 +76,7 @@ final class MRZParserTests: XCTestCase {
                         L898902C36UTO7408122F1204159ZE184226B<<<<<10
                         """
         let result = MRZResult(
+            mrzKey: "L898902C3674081221204159",
             format: .td3,
             documentType: .passport,
             documentTypeAdditional: nil,
@@ -99,6 +102,7 @@ final class MRZParserTests: XCTestCase {
                         1104000008RUS8209120M2601157<<<<<<<<<<<<<<06
                         """
         let result = MRZResult(
+            mrzKey: "110400000882091202601157",
             format: .td3,
             documentType: .passport,
             documentTypeAdditional: nil,
@@ -124,6 +128,7 @@ final class MRZParserTests: XCTestCase {
                         SPECI20142NLD6503101F2403096999999990<<<<<84
                         """
         let result = MRZResult(
+            mrzKey: "SPECI2014265031012403096",
             format: .td3,
             documentType: .passport,
             documentTypeAdditional: nil,
@@ -149,6 +154,7 @@ final class MRZParserTests: XCTestCase {
                         L8988901C4XXX4009078F96121096ZE184226B<<<<<<
                         """
         let result = MRZResult(
+            mrzKey: "L8988901C440090789612109",
             format: .td3,
             documentType: .visa,
             documentTypeAdditional: nil,
@@ -174,6 +180,7 @@ final class MRZParserTests: XCTestCase {
                         L8988901C4XXX4009078F9612109<<<<<<<<
                         """
         let result = MRZResult(
+            mrzKey: "L8988901C440090789612109",
             format: .td2,
             documentType: .visa,
             documentTypeAdditional: nil,
@@ -201,6 +208,7 @@ final class MRZParserTests: XCTestCase {
                         ERIKSSON<<ANNA<MARIA<<<<<<<<<<
                         """
         let result = MRZResult(
+            mrzKey: "PS9910656785112502904076",
             format: .td1,
             documentType: .id,
             documentTypeAdditional: "T",
