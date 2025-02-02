@@ -63,7 +63,7 @@ struct MRZCode {
 
                 result += [birthdateField, expiryDateField]
 
-                if optionalValidatedFields.count > 0 {
+                if optionalValidatedFields.count > 1 {
                     result.append(optionalValidatedFields[1])
                 }
                 return result

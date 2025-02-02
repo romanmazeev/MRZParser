@@ -227,4 +227,31 @@ final class MRZParserTests: XCTestCase {
         XCTAssertEqual(MRZParser.parse(mrzString: mrzString, isOCRCorrectionEnabled: true), result)
         XCTAssertNil(MRZParser.parse(mrzString: mrzString, isOCRCorrectionEnabled: false))
     }
+
+    func testTD1withoutOptionalData2() throws {
+        let mrzString = """
+                        I<LVAPA99929216121282<88882<<<
+                        8212122M1703054LVA<<<<<<<<<<<0
+                        PARAUDZINS<<ANDRIS<<<<<<<<<<<<
+                        """
+        let result = MRZResult(
+            mrzKey: "PA9992921682121221703054",
+            format: .td1,
+            documentType: .id,
+            documentTypeAdditional: nil,
+            countryCode: "LVA",
+            surnames: "PARAUDZINS",
+            givenNames: "ANDRIS",
+            documentNumber: "PA9992921",
+            nationalityCountryCode: "LVA",
+            birthdate:  try XCTUnwrap(dateFormatter.date(from: "821212")),
+            sex: .male,
+            expiryDate: try XCTUnwrap(dateFormatter.date(from: "170305")),
+            optionalData: "121282 88882",
+            optionalData2: nil
+        )
+
+        XCTAssertEqual(MRZParser.parse(mrzString: mrzString, isOCRCorrectionEnabled: true), result)
+        XCTAssertEqual(MRZParser.parse(mrzString: mrzString, isOCRCorrectionEnabled: false), result)
+    }
 }
