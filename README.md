@@ -141,6 +141,10 @@ Surname | ERIKSSON
 Given names | ANNA MARIA
 Optional data | ""
 
+## Credits
+
+The project started as a fork of the public repository which I created when was working in [App In The Air](https://github.com/appintheair).
+
 ## License
 
 The library is distributed under the MIT [LICENSE](https://opensource.org/licenses/MIT).
