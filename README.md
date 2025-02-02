@@ -29,13 +29,10 @@ dependencies: [
 ]
 ```
 ## Usage
-The parser is able to validate the MRZ string and parse the MRZ code. Let's start by initializing our parser.
+To parse MRZ string use the `parse` static method of `MRZParser`.
+The method takes a string with the MRZ code and a boolean value that indicates whether the OCR correction is enabled.
 ```swift
-let parser = MRZParser()
-```
-For parsing, we use the `parse` method which returns the `MRZResult` structure with all the necessary data.
-```swift
-parser.parse(mrzString: mrzString)
+MRZParser.parse(mrzString: mrzString, isOCRCorrectionEnabled: false)
 ```
 ## Example
 ### TD1 (ID card)
