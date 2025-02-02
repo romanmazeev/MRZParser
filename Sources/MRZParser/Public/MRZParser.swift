@@ -39,7 +39,12 @@ public struct MRZParser {
             $0.identifier.contains(mrzCode.sexField)
         } ?? .unspecified
 
+        let mrzKey = mrzCode.documentNumberField.value + (mrzCode.documentNumberField.checkDigit.map { String($0) } ?? "")
+            + mrzCode.birthdateField.rawValue + (mrzCode.birthdateField.checkDigit.map { String($0) } ?? "")
+            + mrzCode.expiryDateField.rawValue + (mrzCode.expiryDateField.checkDigit.map { String($0) } ?? "")
+
         return .init(
+            mrzKey: mrzKey,
             format: mrzCode.format,
             documentType: documentType,
             documentTypeAdditional: documentTypeAdditional,
