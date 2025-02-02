@@ -5,63 +5,63 @@
 //  Created by Roman Mazeev on 15.06.2021.
 //
 
+import Foundation
+
 public struct MRZParser {
-    private let formatter: MRZFieldFormatter
+    public static func parse(mrzLines: [String], isOCRCorrectionEnabled: Bool) -> MRZResult? {
+        guard let format = createMRZFormat(from: mrzLines) else { return nil }
 
-    public init(isOCRCorrectionEnabled: Bool) {
-        formatter = MRZFieldFormatter(isOCRCorrectionEnabled: isOCRCorrectionEnabled)
-    }
-
-    init(formatter: MRZFieldFormatter) {
-        self.formatter = formatter
-    }
-
-    // MARK: Parsing
-    public func parse(mrzLines: [String]) -> MRZResult? {
-        guard let format = mrzFormat(from: mrzLines) else { return nil }
-
-        let mrzCode: MRZCode = MRZCodeFactory().create(
+        guard var mrzCode = MRZCode(
             from: mrzLines,
             format: format,
-            formatter: formatter
-        )
+            isOCRCorrectionEnabled: isOCRCorrectionEnabled
+        ), mrzCode.allFieldsAreValid else {
+            return nil
+        }
 
-        guard mrzCode.isValid else { return nil }
+        if !mrzCode.isCompositionValid {
+            if isOCRCorrectionEnabled {
+                if !mrzCode.bruteForceCorrectOptionalDataIfNeeded() {
+                    return nil
+                }
+            } else {
+                return nil
+            }
+        }
 
         let documentType = MRZResult.DocumentType.allCases.first {
-            $0.identifier == mrzCode.documentTypeField.value.first
+            $0.identifier == mrzCode.documentTypeField.first
         } ?? .undefined
-        let documentTypeAdditional = mrzCode.documentTypeField.value.count == 2
-            ? mrzCode.documentTypeField.value.last
+        let documentTypeAdditional = mrzCode.documentTypeField.count == 2
+            ? mrzCode.documentTypeField.last
             : nil
         let sex = MRZResult.Sex.allCases.first {
-            $0.identifier.contains(mrzCode.sexField.value)
+            $0.identifier.contains(mrzCode.sexField)
         } ?? .unspecified
-        let documentNumber = makeDocumentNumberString(from: mrzCode)
 
         return .init(
-            format: format,
+            format: mrzCode.format,
             documentType: documentType,
             documentTypeAdditional: documentTypeAdditional,
-            countryCode: mrzCode.countryCodeField.value,
+            countryCode: mrzCode.countryCodeField,
             surnames: mrzCode.namesField.surnames,
             givenNames: mrzCode.namesField.givenNames,
-            documentNumber: documentNumber,
-            nationalityCountryCode: mrzCode.nationalityField.value,
+            documentNumber: mrzCode.documentNumberField.value,
+            nationalityCountryCode: mrzCode.nationalityField,
             birthdate: mrzCode.birthdateField.value,
             sex: sex,
             expiryDate: mrzCode.expiryDateField.value,
-            optionalData: mrzCode.optionalDataField.value,
+            optionalData: mrzCode.optionalDataField?.value,
             optionalData2: mrzCode.optionalData2Field?.value
         )
     }
 
-    public func parse(mrzString: String) -> MRZResult? {
-        return parse(mrzLines: mrzString.components(separatedBy: "\n"))
+    public static func parse(mrzString: String, isOCRCorrectionEnabled: Bool) -> MRZResult? {
+        return parse(mrzLines: mrzString.components(separatedBy: "\n"), isOCRCorrectionEnabled: isOCRCorrectionEnabled)
     }
 
     // MARK: MRZ-Format detection
-    private func mrzFormat(from mrzLines: [String]) -> MRZFormat? {
+    private static func createMRZFormat(from mrzLines: [String]) -> MRZFormat? {
         switch mrzLines.count {
         case MRZFormat.td2.linesCount,  MRZFormat.td3.linesCount:
             return [.td2, .td3].first(where: { $0.lineLength == uniformedLineLength(for: mrzLines) })
@@ -72,23 +72,9 @@ public struct MRZParser {
         }
     }
 
-    private func uniformedLineLength(for mrzLines: [String]) -> Int? {
+    private static func uniformedLineLength(for mrzLines: [String]) -> Int? {
         guard let lineLength = mrzLines.first?.count,
               !mrzLines.contains(where: { $0.count != lineLength }) else { return nil }
         return lineLength
     }
-
-    private func makeDocumentNumberString(from mrzCode: MRZCode) -> String {
-         var number = mrzCode.documentNumberField.value
-
-         // Exceptional condition for Russian national passport
-         if mrzCode.documentTypeField.value == "PN"
-             && mrzCode.countryCodeField.value == "RUS"
-             && mrzCode.documentNumberField.value.count == 9,
-             let hiddenDigit = mrzCode.optionalDataField.value.first {
-             number.insert(hiddenDigit, at: number.index(number.startIndex, offsetBy: 3))
-         }
-
-         return number
-     }
 }

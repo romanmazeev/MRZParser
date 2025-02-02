@@ -75,13 +75,12 @@ public struct MRZResult: Sendable, Hashable {
     public let countryCode: String
     public let surnames: String
     public let givenNames: String
-    public let documentNumber: String?
+    public let documentNumber: String
     public let nationalityCountryCode: String
-    public let birthdate: Date?
+    public let birthdate: Date
     public let sex: Sex
-    public let expiryDate: Date?
+    public let expiryDate: Date
     public let optionalData: String?
-    /// `nil` if not provided
     public let optionalData2: String?
 
     public init(
@@ -91,11 +90,11 @@ public struct MRZResult: Sendable, Hashable {
         countryCode: String,
         surnames: String,
         givenNames: String,
-        documentNumber: String?,
+        documentNumber: String,
         nationalityCountryCode: String,
-        birthdate: Date?,
+        birthdate: Date,
         sex: Sex,
-        expiryDate: Date?,
+        expiryDate: Date,
         optionalData: String?,
         optionalData2: String?
     ) {
@@ -114,4 +113,3 @@ public struct MRZResult: Sendable, Hashable {
         self.optionalData2 = optionalData2
     }
 }
-
