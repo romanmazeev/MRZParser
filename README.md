@@ -1,12 +1,11 @@
-[![Build and test](https://github.com/appintheair/MRZParser/actions/workflows/Build%20and%20test.yml/badge.svg)](https://github.com/appintheair/MRZParser/actions/workflows/Build%20and%20test.yml)
-[![codecov](https://codecov.io/gh/appintheair/MRZParser/branch/develop/graph/badge.svg?token=XS5F9MtSfq)](https://codecov.io/gh/appintheair/MRZParser)
+[![Build and test](https://github.com/romanmazeev/MRZParser/actions/workflows/Build%20and%20test.yml/badge.svg)](https://github.com/appintheair/MRZParser/actions/workflows/Build%20and%20test.yml)
 [![spm](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)](https://github.com/appintheair/MRZParser/blob/develop/Package.swift)
 
 # MRZParser
 [MRZ](https://en.wikipedia.org/wiki/Machine-readable_passport) code parser for TD1(ID cards), TD2, TD3 (Passports), MRVA (Visas type A), MRVB (Visas type B) types.
 
 ## Fields Distribution of Official Travel Documents:
-![image](https://raw.githubusercontent.com/appintheair/MRZParser/develop/docs/img/Fields_Distribution.png)
+![image](https://raw.githubusercontent.com/romanmazeev/MRZParser/master/docs/img/Fields_Distribution.png)
 #### Fields description
 Field | TD1 description | TD2 description | TD3 description | MRVA description | MRVB description
 ----- | --------------- | --------------- | --------------- | ---------------- | ----------------
