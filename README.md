@@ -25,14 +25,13 @@ Optional data 2 | Optional personal data at the discretion of the issuing State.
 ### Swift Package Manager
 ```swift
 dependencies: [
-    .package(url: "https://github.com/appintheair/MRZParser.git", .upToNextMajor(from: "1.2.1"))
+    .package(url: "https://github.com/appintheair/MRZParser.git", .upToNextMajor(from: "1.3.1"))
 ]
 ```
 ## Usage
-To parse MRZ string use the `parse` static method of `MRZParser`.
-The method takes a string with the MRZ code and a boolean value that indicates whether the OCR correction is enabled.
+To parse MRZ string use `MRZCode` initialiser.
 ```swift
-MRZParser.parse(mrzString: mrzString, isOCRCorrectionEnabled: false)
+MRZCode(mrzString: mrzString, isOCRCorrectionEnabled: false)
 ```
 ## Example
 ### TD1 (ID card)
