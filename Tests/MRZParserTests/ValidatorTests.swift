@@ -32,4 +32,21 @@ final class ValidatorTests: XCTestCase {
     func testIsValueValidNoCheckDigitUnexpectedScalar() {
         XCTAssertFalse(Validator.liveValue.isValueValid(rawValue: "😄", checkDigit: 0))
     }
+
+    // MARK: - isContentTypeValid
+
+    func testIsContentTypeValidMixed() {
+        XCTAssertTrue(Validator.liveValue.isContentTypeValid(value: "123", contentType: .mixed))
+        XCTAssertTrue(Validator.liveValue.isContentTypeValid(value: "abc", contentType: .mixed))
+    }
+
+    func testIsContentTypeValidLetters() {
+        XCTAssertFalse(Validator.liveValue.isContentTypeValid(value: "123", contentType: .letters))
+        XCTAssertTrue(Validator.liveValue.isContentTypeValid(value: "<ab<c<", contentType: .letters))
+    }
+
+    func testIsContentTypeValidDigits() {
+        XCTAssertFalse(Validator.liveValue.isContentTypeValid(value: "abc", contentType: .digits))
+        XCTAssertTrue(Validator.liveValue.isContentTypeValid(value: "<12<3<", contentType: .digits))
+    }
 }

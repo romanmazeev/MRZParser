@@ -5,6 +5,8 @@
 //  Created by Roman Mazeev on 09/02/2025.
 //
 
+import Foundation
+
 enum FieldType: Hashable {
     enum DateFieldType {
         case birth
@@ -17,6 +19,7 @@ enum FieldType: Hashable {
     }
 
     case documentType
+    case documentTypeAdditional
     case countryCode
     case documentNumber
     case date(DateFieldType)
@@ -25,77 +28,10 @@ enum FieldType: Hashable {
     case names
     case optionalData(OptionalFieldType)
     case finalCheckDigit
+}
 
-    enum ContentType {
-        case letters
-        case digits
-        case mixed
-    }
-    var contentType: ContentType {
-        switch self {
-        case .documentType:
-            .mixed
-        case .countryCode:
-            .letters
-        case .documentNumber:
-            .mixed
-        case .date:
-            .digits
-        case .sex:
-            .letters
-        case .nationality:
-            .letters
-        case .names:
-            .letters
-        case .optionalData:
-            .mixed
-        case .finalCheckDigit:
-            .digits
-        }
-    }
-
-    /// Returns fields that should be validated using final check digit
-    static func finalValidateFields(mrzFormat: MRZCode.Format) -> [Self] {
-        switch mrzFormat {
-        case .td1:
-            [.documentNumber, .optionalData(.one), .date(.birth), .date(.expiry), .optionalData(.two)]
-        case .td2, .td3:
-            [.documentNumber, .date(.birth), .date(.expiry), .optionalData(.one), .optionalData(.two)]
-        }
-    }
-
-    /// If true, the field is followed by a check digit and should be validated
-    func shouldValidate(mrzFormat: MRZCode.Format) -> Bool {
-        switch self {
-        case .documentType:
-            return false
-        case .countryCode:
-            return false
-        case .documentNumber:
-            return true
-        case .date:
-            return true
-        case .sex:
-            return false
-        case .nationality:
-            return false
-        case .names:
-            return false
-        case .optionalData(.one):
-            switch mrzFormat {
-            case .td3(let isVisaDocument) where !isVisaDocument:
-                return true
-            default:
-                return false
-            }
-        case .optionalData(.two):
-            return false
-        case .finalCheckDigit:
-            return false
-        }
-    }
-
-    struct FieldPosition {
+extension FieldType {
+    struct FieldPosition: Equatable {
         /// Line number in MRZ code where the field is located (starting from 0)
         let line: Int
         /// Range of characters in the line where the field is located
@@ -109,7 +45,9 @@ enum FieldType: Hashable {
     func position(for format: MRZCode.Format) -> FieldPosition? {
         switch self {
         case .documentType:
-            return .init(line: 0, range: 0..<2)
+            return .init(line: 0, range: 0..<1)
+        case .documentTypeAdditional:
+            return .init(line: 0, range: 1..<2)
         case .countryCode:
             return .init(line: 0, range: 2..<5)
         case .documentNumber:
@@ -182,6 +120,76 @@ enum FieldType: Hashable {
                 return .init(line: 1, range: 43..<44)
             default:
                 return nil
+            }
+        }
+    }
+}
+
+extension FieldType {
+    enum ContentType {
+        case letters
+        case digits
+        case mixed
+        case sex
+
+        var characterSet: CharacterSet? {
+            switch self {
+            case .digits:
+                .decimalDigits
+            case .letters, .sex:
+                .letters
+            case .mixed:
+                nil
+            }
+        }
+    }
+
+    func contentType(
+        isRussianNationalPassport: Bool
+    ) -> ContentType {
+        switch self {
+        case .names where isRussianNationalPassport:
+            .mixed
+        case .documentNumber where isRussianNationalPassport:
+            .digits
+        case .optionalData(.one) where isRussianNationalPassport:
+            .digits
+        case .documentType, .documentTypeAdditional, .countryCode, .nationality, .names:
+            .letters
+        case .optionalData, .documentNumber:
+            .mixed
+        case .date, .finalCheckDigit:
+            .digits
+        case .sex:
+            .sex
+        }
+    }
+}
+
+extension FieldType {
+    /// Returns fields that should be validated using final check digit
+    static func validateFinalCheckDigitFields(mrzFormat: MRZCode.Format) -> [Self] {
+        switch mrzFormat {
+        case .td1:
+            [.documentNumber, .optionalData(.one), .date(.birth), .date(.expiry), .optionalData(.two)]
+        case .td2, .td3:
+            [.documentNumber, .date(.birth), .date(.expiry), .optionalData(.one), .optionalData(.two)]
+        }
+    }
+
+    /// If true, the field is followed by a check digit and should be validated
+    func shouldValidateCheckDigit(mrzFormat: MRZCode.Format) -> Bool {
+        switch self {
+        case .documentType, .documentTypeAdditional, .countryCode, .sex, .nationality, .names, .optionalData(.two), .finalCheckDigit:
+            return false
+        case .documentNumber, .date:
+            return true
+        case .optionalData(.one):
+            switch mrzFormat {
+            case .td3(let isVisaDocument) where !isVisaDocument:
+                return true
+            default:
+                return false
             }
         }
     }

@@ -7,25 +7,18 @@
 
 import Dependencies
 import DependenciesMacros
-import Foundation
 
 @DependencyClient
 struct OCRCorrector: Sendable {
-    enum CorrectionType {
-        case digits
-        case letters
-        case sex
-    }
-
-    var correct: @Sendable (_ string: String, _ correctionType: CorrectionType) -> String = { _, _ in "" }
+    var correct: @Sendable (_ string: String, _ contentType: FieldType.ContentType) -> String = { _, _ in "" }
     var findMatchingStrings: @Sendable (_ strings: [String], _ isCorrectCombination: @Sendable ([String]) -> Bool) -> [String]?
 }
 
 extension OCRCorrector: DependencyKey {
     static var liveValue: Self {
         @Sendable
-        func correct(string: String, correctionType: CorrectionType) -> String {
-            switch correctionType {
+        func correct(string: String, contentType: FieldType.ContentType) -> String {
+            switch contentType {
             case .digits:
                 return string
                     .replace("O", with: "0")
@@ -44,20 +37,22 @@ extension OCRCorrector: DependencyKey {
             case .sex:
                 return string
                     .replace("P", with: "F")
+            case .mixed:
+                return string
             }
         }
 
         return .init(
-            correct: { string, correctionType in
-                correct(string: string, correctionType: correctionType)
+            correct: { string, contentType in
+                correct(string: string, contentType: contentType)
             },
             findMatchingStrings: { strings, isCorrectCombination in
                 var result: [String]?
                 var stringsArray = strings.map { Array($0) }
 
                 let getTransformedCharacters: (Character) -> [Character] = {
-                    let digitsReplacedCharacter =  Character(correct(string: String($0), correctionType: .digits))
-                    let lettersReplacedCharacter =  Character(correct(string: String($0), correctionType: .letters))
+                    let digitsReplacedCharacter = Character(correct(string: String($0), contentType: .digits))
+                    let lettersReplacedCharacter = Character(correct(string: String($0), contentType: .letters))
                     return [$0, digitsReplacedCharacter, lettersReplacedCharacter]
                 }
 

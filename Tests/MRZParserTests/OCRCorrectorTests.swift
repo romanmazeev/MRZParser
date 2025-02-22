@@ -13,15 +13,19 @@ final class OCRCorrectorTests: XCTestCase {
     // MARK: - correct
 
     func testCorrectDigits() {
-        XCTAssertEqual(OCRCorrector.liveValue.correct(string: "OQUDIZBK", correctionType: .digits), "0000128K")
+        XCTAssertEqual(OCRCorrector.liveValue.correct(string: "OQUDIZBK", contentType: .digits), "0000128K")
     }
 
     func testCorrectLetters() {
-        XCTAssertEqual(OCRCorrector.liveValue.correct(string: "01284", correctionType: .letters), "OIZB4")
+        XCTAssertEqual(OCRCorrector.liveValue.correct(string: "01284", contentType: .letters), "OIZB4")
     }
 
     func testCorrectSex() {
-        XCTAssertEqual(OCRCorrector.liveValue.correct(string: "PZ", correctionType: .sex), "FZ")
+        XCTAssertEqual(OCRCorrector.liveValue.correct(string: "PZ", contentType: .sex), "FZ")
+    }
+
+    func testCorrectMixed() {
+        XCTAssertEqual(OCRCorrector.liveValue.correct(string: "OQUDIZBK", contentType: .mixed), "OQUDIZBK")
     }
 
     // MARK: - findMatchingStrings

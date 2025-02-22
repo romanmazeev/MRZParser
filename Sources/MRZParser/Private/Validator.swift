@@ -13,6 +13,7 @@ import Foundation
 struct Validator: Sendable {
     var isCompositionValid: @Sendable (_ validatedFields: [any FieldProtocol], _ finalCheckDigit: Int) -> Bool = { _, _ in false }
     var isValueValid: @Sendable (_ rawValue: String, _ checkDigit: Int) -> Bool = { _, _ in false }
+    var isContentTypeValid: @Sendable (_ value: String, _ contentType: FieldType.ContentType) -> Bool = { _, _ in false }
 }
 
 extension Validator: DependencyKey {
@@ -63,6 +64,13 @@ extension Validator: DependencyKey {
             },
             isValueValid: { rawValue, checkDigit in
                 isValueValid(rawValue, checkDigit: checkDigit)
+            },
+            isContentTypeValid: { value, contentType in
+                if let characterSet = contentType.characterSet, !characterSet.isSuperset(of: CharacterSet(charactersIn: value.replace("<", with: ""))) {
+                    return false
+                } else {
+                    return true
+                }
             }
         )
     }

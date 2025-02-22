@@ -20,6 +20,11 @@ public struct MRZCode: Sendable, Hashable {
         case undefined
     }
 
+    public enum DocumentTypeAdditional: CaseIterable, Sendable {
+        case national
+        case diplomatic
+    }
+
     public enum Sex: CaseIterable, Sendable {
         case male
         case female
@@ -39,14 +44,14 @@ public struct MRZCode: Sendable, Hashable {
     public let mrzKey: String
     public let format: Format
     public let documentType: DocumentType
-    public let documentTypeAdditional: Character?
+    public let documentTypeAdditional: DocumentTypeAdditional?
     public let countryCode: String
     public let names: Names
     public let documentNumber: String
     public let nationalityCountryCode: String
     public let birthdate: Date
     public let sex: Sex
-    public let expiryDate: Date
+    public let expiryDate: Date?
     public let optionalData: String?
     public let optionalData2: String?
 
@@ -84,14 +89,14 @@ public struct MRZCode: Sendable, Hashable {
         mrzKey: String,
         format: MRZCode.Format,
         documentType: DocumentType,
-        documentTypeAdditional: Character?,
+        documentTypeAdditional: DocumentTypeAdditional?,
         countryCode: String,
         names: Names,
         documentNumber: String,
         nationalityCountryCode: String,
         birthdate: Date,
         sex: Sex,
-        expiryDate: Date,
+        expiryDate: Date?,
         optionalData: String?,
         optionalData2: String?
     ) {

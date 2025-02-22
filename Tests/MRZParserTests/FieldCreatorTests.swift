@@ -12,9 +12,15 @@ import XCTest
 
 final class FieldCreatorTests: XCTestCase {
     private enum Event: Equatable, Sendable {
-        case correct(String, OCRCorrector.CorrectionType)
-        case isValueValid(_ rawValue: String, _ checkDigit: Int)
-        case findMatchingStrings(_ strings: [String]?, _ isCorrectCombination: Bool)
+        case getRawValueAndCheckDigit(
+            _ lines: [String],
+            _ position: FieldType.FieldPosition,
+            _ contentType: FieldType.ContentType,
+            _ shouldValidateCheckDigit: Bool,
+            _ isOCRCorrectionEnabled: Bool
+        )
+        case convert(String)
+        case isContentTypeValid(_ value: String, _ contentType: FieldType.ContentType)
     }
 
     // MARK: - String
@@ -23,22 +29,23 @@ final class FieldCreatorTests: XCTestCase {
         let events = LockIsolated([Event]())
 
         withDependencies {
-            $0.ocrCorrector.correct = { @Sendable string, correctionType in
-                events.withValue { $0.append(.correct(string, correctionType)) }
-                return "test"
+            $0.fieldComponentsCreator.getRawValueAndCheckDigit = { @Sendable lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.getRawValueAndCheckDigit(lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled)) }
+                return ("test", 9)
             }
         } operation: {
             XCTAssertEqual(
                 FieldCreator.liveValue.createStringField(
-                    lines: ["", "012345678901234567890"],
+                    lines: [],
                     format: .td2(isVisaDocument: false),
                     type: .sex,
-                    isOCRCorrectionEnabled: true
+                    isRussianNationalPassport: true,
+                    isOCRCorrectionEnabled: false
                 ),
                 .init(
                     value: "test",
                     rawValue: "test",
-                    checkDigit: nil,
+                    checkDigit: 9,
                     type: .sex
                 )
             )
@@ -46,197 +53,14 @@ final class FieldCreatorTests: XCTestCase {
             expectNoDifference(
                 events.value,
                 [
-                    .correct(
-                        "0",
-                        .sex
-                    )
-                ]
-            )
-        }
-    }
-
-    func testCreateStringFieldValueNotValid() {
-        let events = LockIsolated([Event]())
-
-        withDependencies {
-            $0.ocrCorrector.correct = { @Sendable string, correctionType in
-                events.withValue { $0.append(.correct(string, correctionType)) }
-                return "0"
-            }
-            $0.ocrCorrector.findMatchingStrings = { @Sendable strings, isCorrectCombination in
-                events.withValue { $0.append(.findMatchingStrings(strings, isCorrectCombination(["test", "test", "test"]))) }
-                return ["test", "test", "test"]
-            }
-
-            $0.validator.isValueValid = { @Sendable rawValue, checkDigit in
-                events.withValue { $0.append(.isValueValid(rawValue, checkDigit)) }
-                return false
-            }
-        } operation: {
-            XCTAssertEqual(
-                FieldCreator.liveValue.createStringField(
-                    lines: ["", "0123456789012345678901234567890123456789012"],
-                    format: .td3(isVisaDocument: false),
-                    type: .optionalData(.one),
-                    isOCRCorrectionEnabled: true
-                ),
-                .init(
-                    value: "test",
-                    rawValue: "test",
-                    checkDigit: 0,
-                    type: .optionalData(.one)
-                )
-            )
-
-            expectNoDifference(
-                events.value,
-                [
-                    .correct(
-                        "2",
-                        .digits
-                    ),
-                    .isValueValid(
-                        "89012345678901",
-                        0
-                    ),
-                    .findMatchingStrings(
-                        [
-                            "89012345678901"
-                        ],
-                        false
-                    )
-                ]
-            )
-        }
-    }
-
-    func testCreateStringFieldValueNotValidEmptyCombination() {
-        let events = LockIsolated([Event]())
-
-        withDependencies {
-            $0.ocrCorrector.correct = { @Sendable string, correctionType in
-                events.withValue { $0.append(.correct(string, correctionType)) }
-                return "0"
-            }
-            $0.ocrCorrector.findMatchingStrings = { @Sendable strings, isCorrectCombination in
-                events.withValue { $0.append(.findMatchingStrings(strings, isCorrectCombination([]))) }
-                return ["test"]
-            }
-
-            $0.validator.isValueValid = { @Sendable rawValue, checkDigit in
-                events.withValue { $0.append(.isValueValid(rawValue, checkDigit)) }
-                return false
-            }
-        } operation: {
-            XCTAssertEqual(
-                FieldCreator.liveValue.createStringField(
-                    lines: ["", "0123456789"],
-                    format: .td2(isVisaDocument: true),
-                    type: .documentNumber,
-                    isOCRCorrectionEnabled: true
-                ),
-                .init(
-                    value: "test",
-                    rawValue: "test",
-                    checkDigit: 0,
-                    type: .documentNumber
-                )
-            )
-
-            expectNoDifference(
-                events.value,
-                [
-                    .correct(
-                        "9",
-                        .digits
-                    ),
-                    .isValueValid(
-                        "012345678",
-                        0
-                    ),
-                    .findMatchingStrings(
-                        [
-                            "012345678"
-                        ],
-                        false
-                    )
-                ]
-            )
-        }
-    }
-
-    func testCreateStringFieldValueNotValidOCRCorrectionDisabled() {
-        let events = LockIsolated([Event]())
-
-        withDependencies {
-            $0.validator.isValueValid = { @Sendable rawValue, checkDigit in
-                events.withValue { $0.append(.isValueValid(rawValue, checkDigit)) }
-                return false
-            }
-        } operation: {
-            XCTAssertNil(
-                FieldCreator.liveValue.createStringField(
-                    lines: ["", "0123456789"],
-                    format: .td2(isVisaDocument: true),
-                    type: .documentNumber,
-                    isOCRCorrectionEnabled: false
-                )
-            )
-
-            expectNoDifference(
-                events.value,
-                [
-                    .isValueValid(
-                        "012345678",
-                        9
-                    )
-                ]
-            )
-        }
-    }
-
-    func testCreateStringFieldValueNotValidNoMatchingStrings() {
-        let events = LockIsolated([Event]())
-
-        withDependencies {
-            $0.ocrCorrector.correct = { @Sendable string, correctionType in
-                events.withValue { $0.append(.correct(string, correctionType)) }
-                return "0"
-            }
-            $0.ocrCorrector.findMatchingStrings = { @Sendable strings, isCorrectCombination in
-                events.withValue { $0.append(.findMatchingStrings(strings, isCorrectCombination(["test", "test", "test"]))) }
-                return nil
-            }
-
-            $0.validator.isValueValid = { @Sendable rawValue, checkDigit in
-                events.withValue { $0.append(.isValueValid(rawValue, checkDigit)) }
-                return false
-            }
-        } operation: {
-            XCTAssertNil(
-                FieldCreator.liveValue.createStringField(
-                    lines: ["", "0123456789"],
-                    format: .td2(isVisaDocument: true),
-                    type: .documentNumber,
-                    isOCRCorrectionEnabled: true
-                )
-            )
-
-            expectNoDifference(
-                events.value,
-                [
-                    .correct(
-                        "9",
-                        .digits
-                    ),
-                    .isValueValid(
-                        "012345678",
-                        0
-                    ),
-                    .findMatchingStrings(
-                        [
-                            "012345678"
-                        ],
+                    .getRawValueAndCheckDigit(
+                        [],
+                        .init(
+                            line: 1,
+                            range: 20..<21
+                        ),
+                        .sex,
+                        false,
                         false
                     )
                 ]
@@ -248,33 +72,290 @@ final class FieldCreatorTests: XCTestCase {
         XCTAssertNil(
             FieldCreator.liveValue.createStringField(
                 lines: [],
-                format: .td2(isVisaDocument: false),
+                format: .td2(isVisaDocument: true),
                 type: .optionalData(.two),
-                isOCRCorrectionEnabled: false
+                isRussianNationalPassport: false,
+                isOCRCorrectionEnabled: true
             )
         )
     }
 
+    func testCreateStringFieldNoValue() {
+        let events = LockIsolated([Event]())
+
+        withDependencies {
+            $0.fieldComponentsCreator.getRawValueAndCheckDigit = { @Sendable lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.getRawValueAndCheckDigit(lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled)) }
+                return ("", 9)
+            }
+        } operation: {
+            XCTAssertNil(
+                FieldCreator.liveValue.createStringField(
+                    lines: [],
+                    format: .td3(isVisaDocument: false),
+                    type: .optionalData(.one),
+                    isRussianNationalPassport: true,
+                    isOCRCorrectionEnabled: true
+                )
+            )
+
+            expectNoDifference(
+                events.value,
+                [
+                    .getRawValueAndCheckDigit(
+                        [],
+                        .init(
+                            line: 1,
+                            range: 28..<42
+                        ),
+                        .digits,
+                        true,
+                        true
+                    )
+                ]
+            )
+        }
+    }
+
+    // MARK: - DocumentNumber
+
+    func testCreateDocumentNumberField() {
+        let events = LockIsolated([Event]())
+
+        withDependencies {
+            $0.fieldComponentsCreator.getRawValueAndCheckDigit = { @Sendable lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.getRawValueAndCheckDigit(lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled)) }
+                return ("1234567890", 4)
+            }
+        } operation: {
+            XCTAssertEqual(
+                FieldCreator.liveValue.createDocumentNumberField(
+                    lines: [],
+                    format: .td1,
+                    russianNationalPassportHiddenCharacter: "S",
+                    isOCRCorrectionEnabled: false
+                ),
+                .init(
+                    value: "123S4567890",
+                    rawValue: "1234567890",
+                    checkDigit: 4,
+                    type: .documentNumber
+                )
+            )
+
+            expectNoDifference(
+                events.value,
+                [
+                    .getRawValueAndCheckDigit(
+                        [],
+                        .init(
+                            line: 0,
+                            range: 5..<14
+                        ),
+                        .digits,
+                        true,
+                        false
+                    )
+                ]
+            )
+        }
+    }
+
+    func testCreateDocumentNumberFieldNoValue() {
+        let events = LockIsolated([Event]())
+
+        withDependencies {
+            $0.fieldComponentsCreator.getRawValueAndCheckDigit = { @Sendable lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.getRawValueAndCheckDigit(lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled)) }
+                return ("", 4)
+            }
+        } operation: {
+            XCTAssertNil(
+                FieldCreator.liveValue.createDocumentNumberField(
+                    lines: [],
+                    format: .td3(isVisaDocument: false),
+                    russianNationalPassportHiddenCharacter: nil,
+                    isOCRCorrectionEnabled: false
+                )
+            )
+
+            expectNoDifference(
+                events.value,
+                [
+                    .getRawValueAndCheckDigit(
+                        [],
+                        .init(
+                            line: 1,
+                            range: 0..<9
+                        ),
+                        .mixed,
+                        true,
+                        false
+                    )
+                ]
+            )
+        }
+    }
+
+
+    // MARK: - Character
+
+    func testCreateCharacterField() {
+        let events = LockIsolated([Event]())
+
+        withDependencies {
+            $0.fieldComponentsCreator.getRawValueAndCheckDigit = { @Sendable lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.getRawValueAndCheckDigit(lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled)) }
+                return ("K", nil)
+            }
+        } operation: {
+            XCTAssertEqual(
+                FieldCreator.liveValue.createCharacterField(
+                    lines: [],
+                    format: .td2(isVisaDocument: true),
+                    type: .documentTypeAdditional,
+                    isOCRCorrectionEnabled: false
+                ),
+                .init(
+                    value: "K",
+                    rawValue: "K",
+                    checkDigit: nil,
+                    type: .documentTypeAdditional
+                )
+            )
+
+            expectNoDifference(
+                events.value,
+                [
+                    .getRawValueAndCheckDigit(
+                        [],
+                        .init(
+                            line: 0,
+                            range: 1..<2
+                        ),
+                        .letters,
+                        false,
+                        false
+                    )
+                ]
+            )
+        }
+    }
+
+    func testCreateCharacterFieldNoValue() {
+        let events = LockIsolated([Event]())
+
+        withDependencies {
+            $0.fieldComponentsCreator.getRawValueAndCheckDigit = { @Sendable lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.getRawValueAndCheckDigit(lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled)) }
+                return ("", 4)
+            }
+        } operation: {
+            XCTAssertNil(
+                FieldCreator.liveValue.createCharacterField(
+                    lines: [],
+                    format: .td1,
+                    type: .sex,
+                    isOCRCorrectionEnabled: true
+                )
+            )
+
+            expectNoDifference(
+                events.value,
+                [
+                    .getRawValueAndCheckDigit(
+                        [],
+                        .init(
+                            line: 1,
+                            range: 7..<8
+                        ),
+                        .sex,
+                        false,
+                        true
+                    )
+                ]
+            )
+        }
+    }
+
     // MARK: - Names
+
+    func testCreateNamesFieldContentTypeNotValid() {
+        let events = LockIsolated([Event]())
+
+        withDependencies {
+            $0.fieldComponentsCreator.getRawValueAndCheckDigit = { @Sendable lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.getRawValueAndCheckDigit(lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled)) }
+                return ("test", nil)
+            }
+            $0.cyrillicNameConverter.convert = { @Sendable rawValue in
+                events.withValue { $0.append(.convert(rawValue)) }
+                return "<surnames<<givenNames<"
+            }
+            $0.validator.isContentTypeValid = { @Sendable value, contentType in
+                events.withValue { $0.append(.isContentTypeValid(value, contentType)) }
+                return false
+            }
+        } operation: {
+            XCTAssertNil(
+                FieldCreator.liveValue.createNamesField(
+                    lines: [],
+                    format: .td2(isVisaDocument: true),
+                    isRussianNationalPassport: true,
+                    isOCRCorrectionEnabled: true
+                )
+            )
+
+            expectNoDifference(
+                events.value,
+                [
+                    .getRawValueAndCheckDigit(
+                        [],
+                        .init(
+                            line: 0,
+                            range: 5..<36
+                        ),
+                        .mixed,
+                        false,
+                        true
+                    ),
+                    .convert("test"),
+                    .isContentTypeValid(
+                        "<surnames<<givenNames<",
+                        .letters
+                    )
+                ]
+            )
+        }
+    }
 
     func testCreateNamesField() {
         let events = LockIsolated([Event]())
 
         withDependencies {
-            $0.ocrCorrector.correct = { @Sendable string, correctionType in
-                events.withValue { $0.append(.correct(string, correctionType)) }
+            $0.fieldComponentsCreator.getRawValueAndCheckDigit = { @Sendable lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.getRawValueAndCheckDigit(lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled)) }
+                return ("test", nil)
+            }
+            $0.cyrillicNameConverter.convert = { @Sendable rawValue in
+                events.withValue { $0.append(.convert(rawValue)) }
                 return "<surnames<<givenNames<"
+            }
+            $0.validator.isContentTypeValid = { @Sendable value, contentType in
+                events.withValue { $0.append(.isContentTypeValid(value, contentType)) }
+                return true
             }
         } operation: {
             XCTAssertEqual(
                 FieldCreator.liveValue.createNamesField(
-                    lines: ["01234567890123456789012345678901234567890123"],
+                    lines: [],
                     format: .td3(isVisaDocument: true),
+                    isRussianNationalPassport: true,
                     isOCRCorrectionEnabled: true
                 ),
                 .init(
                     value: .init(surnames: "surnames", givenNames: "givenNames"),
-                    rawValue: "<surnames<<givenNames<",
+                    rawValue: "test",
                     checkDigit: nil,
                     type: .names
                 )
@@ -283,8 +364,19 @@ final class FieldCreatorTests: XCTestCase {
             expectNoDifference(
                 events.value,
                 [
-                    .correct(
-                        "567890123456789012345678901234567890123",
+                    .getRawValueAndCheckDigit(
+                        [],
+                        .init(
+                            line: 0,
+                            range: 5..<44
+                        ),
+                        .mixed,
+                        false,
+                        true
+                    ),
+                    .convert("test"),
+                    .isContentTypeValid(
+                        "<surnames<<givenNames<",
                         .letters
                     )
                 ]
@@ -296,15 +388,20 @@ final class FieldCreatorTests: XCTestCase {
         let events = LockIsolated([Event]())
 
         withDependencies {
-            $0.ocrCorrector.correct = { @Sendable string, correctionType in
-                events.withValue { $0.append(.correct(string, correctionType)) }
-                return "surname"
+            $0.fieldComponentsCreator.getRawValueAndCheckDigit = { @Sendable lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.getRawValueAndCheckDigit(lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled)) }
+                return ("surname", nil)
+            }
+            $0.validator.isContentTypeValid = { @Sendable value, contentType in
+                events.withValue { $0.append(.isContentTypeValid(value, contentType)) }
+                return true
             }
         } operation: {
             XCTAssertEqual(
                 FieldCreator.liveValue.createNamesField(
-                    lines: ["01234567890123456789012345678901234567890123"],
-                    format: .td3(isVisaDocument: true),
+                    lines: [],
+                    format: .td3(isVisaDocument: false),
+                    isRussianNationalPassport: false,
                     isOCRCorrectionEnabled: true
                 ),
                 .init(
@@ -318,8 +415,18 @@ final class FieldCreatorTests: XCTestCase {
             expectNoDifference(
                 events.value,
                 [
-                    .correct(
-                        "567890123456789012345678901234567890123",
+                    .getRawValueAndCheckDigit(
+                        [],
+                        .init(
+                            line: 0,
+                            range: 5..<44
+                        ),
+                        .letters,
+                        false,
+                        true
+                    ),
+                    .isContentTypeValid(
+                        "surname",
                         .letters
                     )
                 ]
@@ -327,19 +434,20 @@ final class FieldCreatorTests: XCTestCase {
         }
     }
 
-    func testCreateNamesFieldNoRawValue() {
+    func testCreateNamesFieldNoValue() {
         let events = LockIsolated([Event]())
 
         withDependencies {
-            $0.ocrCorrector.correct = { @Sendable string, correctionType in
-                events.withValue { $0.append(.correct(string, correctionType)) }
-                return "123"
+            $0.fieldComponentsCreator.getRawValueAndCheckDigit = { @Sendable lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.getRawValueAndCheckDigit(lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled)) }
+                return nil
             }
         } operation: {
             XCTAssertNil(
                 FieldCreator.liveValue.createNamesField(
-                    lines: ["", "", "01234567890123456789012345678"],
+                    lines: [],
                     format: .td1,
+                    isRussianNationalPassport: false,
                     isOCRCorrectionEnabled: true
                 )
             )
@@ -347,9 +455,15 @@ final class FieldCreatorTests: XCTestCase {
             expectNoDifference(
                 events.value,
                 [
-                    .correct(
-                        "01234567890123456789012345678",
-                        .letters
+                    .getRawValueAndCheckDigit(
+                        [],
+                        .init(
+                            line: 2,
+                            range: 0..<29
+                        ),
+                        .letters,
+                        false,
+                        true
                     )
                 ]
             )
@@ -360,25 +474,18 @@ final class FieldCreatorTests: XCTestCase {
 
     func testCreateBirthDateFieldCurrentCentennial() {
         let events = LockIsolated([Event]())
-        let correctRawValue: LockIsolated<Bool> = .init(true)
 
         withDependencies {
             $0.date.now = Date(timeIntervalSince1970: 475788000)
-            $0.validator.isValueValid = { @Sendable rawValue, checkDigit in
-                events.withValue { $0.append(.isValueValid(rawValue, checkDigit)) }
-                return true
-            }
-            $0.ocrCorrector.correct = { @Sendable string, correctionType in
-                events.withValue { $0.append(.correct(string, correctionType)) }
-                let oldValue = correctRawValue.value
-                correctRawValue.setValue(false)
-                return oldValue ? "850101" : "8"
+            $0.fieldComponentsCreator.getRawValueAndCheckDigit = { @Sendable lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.getRawValueAndCheckDigit(lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled)) }
+                return ("850101", 8)
             }
         } operation: {
             XCTAssertEqual(
                 FieldCreator.liveValue.createDateField(
-                    lines: ["", "8501017"],
-                    format: .td1,
+                    lines: [],
+                    format: .td3(isVisaDocument: true),
                     dateFieldType: .birth,
                     isOCRCorrectionEnabled: true
                 ),
@@ -393,17 +500,15 @@ final class FieldCreatorTests: XCTestCase {
             expectNoDifference(
                 events.value,
                 [
-                    .correct(
-                        "850101",
-                        .digits
-                    ),
-                    .correct(
-                        "7",
-                        .digits
-                    ),
-                    .isValueValid(
-                        "850101",
-                        8
+                    .getRawValueAndCheckDigit(
+                        [],
+                        .init(
+                            line: 1,
+                            range: 13..<19
+                        ),
+                        .digits,
+                        true,
+                        true
                     )
                 ]
             )
@@ -415,17 +520,17 @@ final class FieldCreatorTests: XCTestCase {
 
         withDependencies {
             $0.date.now = .init(timeIntervalSince1970: 475788000)
-            $0.validator.isValueValid = { @Sendable rawValue, checkDigit in
-                events.withValue { $0.append(.isValueValid(rawValue, checkDigit)) }
-                return true
+            $0.fieldComponentsCreator.getRawValueAndCheckDigit = { @Sendable lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.getRawValueAndCheckDigit(lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled)) }
+                return ("900101", 7)
             }
         } operation: {
             XCTAssertEqual(
                 FieldCreator.liveValue.createDateField(
-                    lines: ["", "9001017"],
+                    lines: [],
                     format: .td1,
                     dateFieldType: .birth,
-                    isOCRCorrectionEnabled: false
+                    isOCRCorrectionEnabled: true
                 ),
                 .init(
                     value: .init(timeIntervalSince1970: -2524521600),
@@ -438,9 +543,15 @@ final class FieldCreatorTests: XCTestCase {
             expectNoDifference(
                 events.value,
                 [
-                    .isValueValid(
-                        "900101",
-                        7
+                    .getRawValueAndCheckDigit(
+                        [],
+                        .init(
+                            line: 1,
+                            range: 0..<6
+                        ),
+                        .digits,
+                        true,
+                        true
                     )
                 ]
             )
@@ -452,14 +563,14 @@ final class FieldCreatorTests: XCTestCase {
 
         withDependencies {
             $0.date.now = Date(timeIntervalSince1970: 0)
-            $0.validator.isValueValid = { @Sendable rawValue, checkDigit in
-                events.withValue { $0.append(.isValueValid(rawValue, checkDigit)) }
-                return true
+            $0.fieldComponentsCreator.getRawValueAndCheckDigit = { @Sendable lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.getRawValueAndCheckDigit(lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled)) }
+                return ("901201", 5)
             }
         } operation: {
             XCTAssertEqual(
                 FieldCreator.liveValue.createDateField(
-                    lines: ["", "123456789012015"],
+                    lines: [],
                     format: .td1,
                     dateFieldType: .expiry,
                     isOCRCorrectionEnabled: false
@@ -475,9 +586,15 @@ final class FieldCreatorTests: XCTestCase {
             expectNoDifference(
                 events.value,
                 [
-                    .isValueValid(
-                        "901201",
-                        5
+                    .getRawValueAndCheckDigit(
+                        [],
+                        .init(
+                            line: 1,
+                            range: 8..<14
+                        ),
+                        .digits,
+                        true,
+                        false
                     )
                 ]
             )
@@ -489,17 +606,17 @@ final class FieldCreatorTests: XCTestCase {
 
         withDependencies {
             $0.date.now = .init(timeIntervalSince1970: -1577664000)
-            $0.validator.isValueValid = { @Sendable rawValue, checkDigit in
-                events.withValue { $0.append(.isValueValid(rawValue, checkDigit)) }
-                return true
+            $0.fieldComponentsCreator.getRawValueAndCheckDigit = { @Sendable lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.getRawValueAndCheckDigit(lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled)) }
+                return ("901201", 5)
             }
         } operation: {
             XCTAssertEqual(
                 FieldCreator.liveValue.createDateField(
-                    lines: ["", "123456789012015"],
-                    format: .td1,
+                    lines: [],
+                    format: .td2(isVisaDocument: false),
                     dateFieldType: .expiry,
-                    isOCRCorrectionEnabled: false
+                    isOCRCorrectionEnabled: true
                 ),
                 .init(
                     value: .init(timeIntervalSince1970: -2495664000),
@@ -512,9 +629,15 @@ final class FieldCreatorTests: XCTestCase {
             expectNoDifference(
                 events.value,
                 [
-                    .isValueValid(
-                        "901201",
-                        5
+                    .getRawValueAndCheckDigit(
+                        [],
+                        .init(
+                            line: 1,
+                            range: 21..<27
+                        ),
+                        .digits,
+                        true,
+                        true
                     )
                 ]
             )
@@ -525,14 +648,14 @@ final class FieldCreatorTests: XCTestCase {
         let events = LockIsolated([Event]())
 
         withDependencies {
-            $0.validator.isValueValid = { @Sendable rawValue, checkDigit in
-                events.withValue { $0.append(.isValueValid(rawValue, checkDigit)) }
-                return true
+            $0.fieldComponentsCreator.getRawValueAndCheckDigit = { @Sendable lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.getRawValueAndCheckDigit(lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled)) }
+                return ("test", nil)
             }
         } operation: {
             XCTAssertNil(
                 FieldCreator.liveValue.createDateField(
-                    lines: ["", "ABCDEFGHIJKLMOPQRST9"],
+                    lines: [],
                     format: .td2(isVisaDocument: true),
                     dateFieldType: .birth,
                     isOCRCorrectionEnabled: false
@@ -542,51 +665,111 @@ final class FieldCreatorTests: XCTestCase {
             expectNoDifference(
                 events.value,
                 [
-                    .isValueValid(
-                        "OPQRST",
-                        9
+                    .getRawValueAndCheckDigit(
+                        [],
+                        .init(
+                            line: 1,
+                            range: 13..<19
+                        ),
+                        .digits,
+                        true,
+                        false
                     )
                 ]
             )
         }
     }
 
-    func testCreateDateFieldNoCheckDigit() {
-        XCTAssertNil(
-            FieldCreator.liveValue.createDateField(
-                lines: ["", "0123456789012345678A"],
-                format: .td3(isVisaDocument: false),
-                dateFieldType: .birth,
-                isOCRCorrectionEnabled: false
-            )
-        )
-    }
-
     // MARK: - Int
 
-    func testCreateIntField() {
-        XCTAssertEqual(
-            FieldCreator.liveValue.createIntField(
-                lines: ["", "01234567890123456789012345678901234567890123"],
-                format: .td3(isVisaDocument: false),
-                isOCRCorrectionEnabled: false
-            ),
-            .init(
-                value: 3,
-                rawValue: "3",
-                checkDigit: nil,
-                type: .finalCheckDigit
+    func testCreateFinalCheckDigitField() {
+        let events = LockIsolated([Event]())
+
+        withDependencies {
+            $0.fieldComponentsCreator.getRawValueAndCheckDigit = { @Sendable lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.getRawValueAndCheckDigit(lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled)) }
+                return ("9", nil)
+            }
+        } operation: {
+            XCTAssertEqual(
+                FieldCreator.liveValue.createFinalCheckDigitField(
+                    lines: ["test"],
+                    format: .td3(isVisaDocument: false),
+                    isOCRCorrectionEnabled: true
+                ),
+                .init(
+                    value: 9,
+                    rawValue: "9",
+                    checkDigit: nil,
+                    type: .finalCheckDigit
+                )
+            )
+
+            expectNoDifference(
+                events.value,
+                [
+                    .getRawValueAndCheckDigit(
+                        [
+                            "test"
+                        ],
+                        .init(
+                            line: 1,
+                            range: 43..<44
+                        ),
+                        .digits,
+                        false,
+                        true
+                    )
+                ]
+            )
+        }
+    }
+
+    func testCreateFinalCheckDigitNoPosition() {
+        XCTAssertNil(
+            FieldCreator.liveValue.createFinalCheckDigitField(
+                lines: [],
+                format: .td2(isVisaDocument: true),
+                isOCRCorrectionEnabled: true
             )
         )
     }
 
-    func testCreateIntFieldNotIntValue() {
-        XCTAssertNil(
-            FieldCreator.liveValue.createIntField(
-                lines: ["", "ABCDEFGHIJKLMOPQRSTUVWXYZABCDE"],
-                format: .td1,
-                isOCRCorrectionEnabled: false
+    func testCreateFinalCheckDigitFieldNotIntValue() {
+        let events = LockIsolated([Event]())
+
+        withDependencies {
+            $0.fieldComponentsCreator.getRawValueAndCheckDigit = { @Sendable lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.getRawValueAndCheckDigit(lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled)) }
+                return ("test", 0)
+            }
+        } operation: {
+            XCTAssertNil(
+                FieldCreator.liveValue.createFinalCheckDigitField(
+                    lines: ["test", "test"],
+                    format: .td1,
+                    isOCRCorrectionEnabled: false
+                )
             )
-        )
+
+            expectNoDifference(
+                events.value,
+                [
+                    .getRawValueAndCheckDigit(
+                        [
+                            "test",
+                            "test"
+                        ],
+                        .init(
+                            line: 1,
+                            range: 29..<30
+                        ),
+                        .digits,
+                        false,
+                        false
+                    )
+                ]
+            )
+        }
     }
 }
