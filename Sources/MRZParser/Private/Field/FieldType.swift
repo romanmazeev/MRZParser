@@ -17,6 +17,7 @@ enum FieldType: Hashable {
     }
 
     case documentType
+    case documentTypeAdditional
     case countryCode
     case documentNumber
     case date(DateFieldType)
@@ -30,26 +31,25 @@ enum FieldType: Hashable {
         case letters
         case digits
         case mixed
+
+        var correctionType: OCRCorrector.CorrectionType? {
+            switch self {
+            case .digits:
+                return .digits
+            case .letters:
+                return .letters
+            case .mixed:
+                return nil
+            }
+        }
     }
     var contentType: ContentType {
         switch self {
-        case .documentType:
+        case .documentType, .documentTypeAdditional, .countryCode, .sex, .nationality, .names:
+            .letters
+        case .documentNumber, .optionalData:
             .mixed
-        case .countryCode:
-            .letters
-        case .documentNumber:
-            .mixed
-        case .date:
-            .digits
-        case .sex:
-            .letters
-        case .nationality:
-            .letters
-        case .names:
-            .letters
-        case .optionalData:
-            .mixed
-        case .finalCheckDigit:
+        case .date, .finalCheckDigit:
             .digits
         }
     }
@@ -67,20 +67,10 @@ enum FieldType: Hashable {
     /// If true, the field is followed by a check digit and should be validated
     func shouldValidate(mrzFormat: MRZCode.Format) -> Bool {
         switch self {
-        case .documentType:
+        case .documentType, .documentTypeAdditional, .countryCode, .sex, .nationality, .names, .optionalData(.two), .finalCheckDigit:
             return false
-        case .countryCode:
-            return false
-        case .documentNumber:
+        case .documentNumber, .date:
             return true
-        case .date:
-            return true
-        case .sex:
-            return false
-        case .nationality:
-            return false
-        case .names:
-            return false
         case .optionalData(.one):
             switch mrzFormat {
             case .td3(let isVisaDocument) where !isVisaDocument:
@@ -88,10 +78,6 @@ enum FieldType: Hashable {
             default:
                 return false
             }
-        case .optionalData(.two):
-            return false
-        case .finalCheckDigit:
-            return false
         }
     }
 
@@ -109,7 +95,9 @@ enum FieldType: Hashable {
     func position(for format: MRZCode.Format) -> FieldPosition? {
         switch self {
         case .documentType:
-            return .init(line: 0, range: 0..<2)
+            return .init(line: 0, range: 0..<1)
+        case .documentTypeAdditional:
+            return .init(line: 0, range: 1..<2)
         case .countryCode:
             return .init(line: 0, range: 2..<5)
         case .documentNumber:

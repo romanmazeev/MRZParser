@@ -13,6 +13,8 @@ import XCTest
 final class MRZCodeCreatorTests: XCTestCase {
     private enum Event: Equatable, Sendable {
         case createField(_ lines: [String], _ format: MRZCode.Format, _ type: FieldType, _ isOCRCorrectionEnabled: Bool)
+        case createDocumentNumberField(_ lines: [String], _ format: MRZCode.Format, _ russianNationalPassportHiddenCharacter: Character?, _ isOCRCorrectionEnabled: Bool)
+        case createNamesField(_ lines: [String], _ format: MRZCode.Format, _ isRussianNationalPassport: Bool, _ isOCRCorrectionEnabled: Bool)
         case validateComposition(_ fields: [Field<String>], checkDigit: Int)
         case findMatchingStrings(_ strings: [String]?, _ isCorrectCombination: Bool)
     }
@@ -59,11 +61,11 @@ final class MRZCodeCreatorTests: XCTestCase {
         )
     }
 
-    func testCreateTD1NoRequiredField() {
+    func testCreateTD1NoDocumentTypeField() {
         let events = LockIsolated([Event]())
 
         withDependencies {
-            $0.fieldCreator.createStringField = { @Sendable lines, format, type, isOCRCorrectionEnabled in
+            $0.fieldCreator.createCharacterField = { @Sendable lines, format, type, isOCRCorrectionEnabled in
                 events.withValue { $0.append(.createField(lines, format, type, isOCRCorrectionEnabled)) }
                 return nil
             }
@@ -92,23 +94,105 @@ final class MRZCodeCreatorTests: XCTestCase {
         }
     }
 
+    func testCreateTD1NoNamesField() {
+        let events = LockIsolated([Event]())
+
+        withDependencies {
+            $0.fieldCreator.createStringField = { @Sendable lines, format, type, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.createField(lines, format, type, isOCRCorrectionEnabled)) }
+                return .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: type)
+            }
+            $0.fieldCreator.createCharacterField = { @Sendable lines, format, type, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.createField(lines, format, type, isOCRCorrectionEnabled)) }
+                if type == .documentTypeAdditional {
+                    return nil
+                } else {
+                    return .init(value: "S", rawValue: "StringRawValue<<", checkDigit: 0, type: type)
+                }
+            }
+            $0.fieldCreator.createDateField = { @Sendable lines, format, dateType, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.createField(lines, format, .date(dateType), isOCRCorrectionEnabled)) }
+                return .init(value: .init(timeIntervalSince1970: 0), rawValue: "DateRawValue<<", checkDigit: 0, type: .date(dateType))
+            }
+            $0.fieldCreator.createNamesField = { @Sendable lines, format, russianNationalPassportHiddenCharacter, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.createNamesField(lines, format, russianNationalPassportHiddenCharacter, isOCRCorrectionEnabled)) }
+                return nil
+            }
+            $0.fieldCreator.createFinalCheckDigitField = { @Sendable lines, format, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.createField(lines, format, .finalCheckDigit, isOCRCorrectionEnabled)) }
+                return .init(value: 0, rawValue: "IntRawValue<<", checkDigit: 0, type: .finalCheckDigit)
+            }
+        } operation: {
+            let mrzLines = ["I<UTOD231458907<<<<<<<<<<<<<<<", "7408122X1204159UTO<<<<<<<<<<<6", "ERIKSSON<<ANNA<MARIA<<<<<<<<<<"]
+            let isOCRCorrectionEnabled = false
+
+            XCTAssertNil(
+                MRZCodeCreator.liveValue.create(
+                    mrzLines: mrzLines,
+                    isOCRCorrectionEnabled: isOCRCorrectionEnabled
+                )
+            )
+
+            let createFieldEvent: (_ fieldType: FieldType) -> Event = {
+                .createField(
+                    mrzLines,
+                    .td1,
+                    $0,
+                    isOCRCorrectionEnabled
+                )
+            }
+            expectNoDifference(
+                events.value,
+                [
+                    createFieldEvent(.documentType),
+                    createFieldEvent(.countryCode),
+                    createFieldEvent(.date(.birth)),
+                    createFieldEvent(.sex),
+                    createFieldEvent(.nationality),
+                    createFieldEvent(.date(.expiry)),
+                    createFieldEvent(.documentTypeAdditional),
+                    createFieldEvent(.optionalData(.one)),
+                    createFieldEvent(.optionalData(.two)),
+                    createFieldEvent(.finalCheckDigit),
+                    .createNamesField(mrzLines, .td1, false, isOCRCorrectionEnabled)
+                ]
+            )
+        }
+    }
+
     func testCreateTD1() {
         let events = LockIsolated([Event]())
 
         withDependencies {
             $0.fieldCreator.createStringField = { @Sendable lines, format, type, isOCRCorrectionEnabled in
                 events.withValue { $0.append(.createField(lines, format, type, isOCRCorrectionEnabled)) }
+                return .init(value: "RUS", rawValue: "StringRawValue<<", checkDigit: nil, type: type)
+            }
+            $0.fieldCreator.createDocumentNumberField = { @Sendable lines, format, russianNationalPassportHiddenCharacter, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.createDocumentNumberField(lines, format, russianNationalPassportHiddenCharacter, isOCRCorrectionEnabled)) }
                 return .init(value: "St", rawValue: "StringRawValue<<", checkDigit: nil, type: .documentNumber)
+            }
+            $0.fieldCreator.createCharacterField = { @Sendable lines, format, type, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.createField(lines, format, type, isOCRCorrectionEnabled)) }
+
+                switch type {
+                case .documentType:
+                    return .init(value: "P", rawValue: "StringRawValue<<", checkDigit: nil, type: .documentType)
+                case .documentTypeAdditional:
+                    return .init(value: "N", rawValue: "StringRawValue<<", checkDigit: nil, type: .documentTypeAdditional)
+                default:
+                    return .init(value: "S", rawValue: "StringRawValue<<", checkDigit: nil, type: type)
+                }
             }
             $0.fieldCreator.createDateField = { @Sendable lines, format, dateType, isOCRCorrectionEnabled in
                 events.withValue { $0.append(.createField(lines, format, .date(dateType), isOCRCorrectionEnabled)) }
-                return .init(value: .init(timeIntervalSince1970: 0), rawValue: "DateRawValue<<", checkDigit: nil, type: .date(.birth))
+                return .init(value: .init(timeIntervalSince1970: 0), rawValue: "DateRawValue<<", checkDigit: nil, type: .date(dateType))
             }
-            $0.fieldCreator.createNamesField = { @Sendable lines, format, isOCRCorrectionEnabled in
-                events.withValue { $0.append(.createField(lines, format, .names, isOCRCorrectionEnabled)) }
+            $0.fieldCreator.createNamesField = { @Sendable lines, format, russianNationalPassportHiddenCharacter, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.createNamesField(lines, format, russianNationalPassportHiddenCharacter, isOCRCorrectionEnabled)) }
                 return .init(value: .init(surnames: "surnames", givenNames: "given names"), rawValue: "NamesRawValue<<", checkDigit: nil, type: .names)
             }
-            $0.fieldCreator.createIntField = { @Sendable lines, format, isOCRCorrectionEnabled in
+            $0.fieldCreator.createFinalCheckDigitField = { @Sendable lines, format, isOCRCorrectionEnabled in
                 events.withValue { $0.append(.createField(lines, format, .finalCheckDigit, isOCRCorrectionEnabled)) }
                 return .init(value: 0, rawValue: "IntRawValue<<", checkDigit: nil, type: .finalCheckDigit)
             }
@@ -145,19 +229,19 @@ final class MRZCodeCreatorTests: XCTestCase {
                     isOCRCorrectionEnabled: isOCRCorrectionEnabled
                 ),
                 .init(
-                    mrzKey: "StDateRawValue<<DateRawValue<<",
+                    mrzKey: "StringRawValue<<DateRawValue<<DateRawValue<<",
                     format: .td1,
-                    documentType: .undefined,
-                    documentTypeAdditional: "t",
-                    countryCode: "St",
+                    documentType: .passport,
+                    documentTypeAdditional: .national,
+                    countryCode: "RUS",
                     names: .init(surnames: "surnames", givenNames: "given names"),
                     documentNumber: "St",
-                    nationalityCountryCode: "St",
+                    nationalityCountryCode: "RUS",
                     birthdate: .init(timeIntervalSince1970: 0),
                     sex: .unspecified,
                     expiryDate: .init(timeIntervalSince1970: 0),
-                    optionalData: "St",
-                    optionalData2: "St"
+                    optionalData: "RUS",
+                    optionalData2: "RUS"
                 )
             )
 
@@ -174,21 +258,22 @@ final class MRZCodeCreatorTests: XCTestCase {
                 [
                     createFieldEvent(.documentType),
                     createFieldEvent(.countryCode),
-                    createFieldEvent(.documentNumber),
                     createFieldEvent(.date(.birth)),
-                    createFieldEvent(.date(.expiry)),
                     createFieldEvent(.sex),
                     createFieldEvent(.nationality),
-                    createFieldEvent(.names),
+                    createFieldEvent(.date(.expiry)),
+                    createFieldEvent(.documentTypeAdditional),
                     createFieldEvent(.optionalData(.one)),
                     createFieldEvent(.optionalData(.two)),
                     createFieldEvent(.finalCheckDigit),
+                    .createNamesField(mrzLines, .td1, true, isOCRCorrectionEnabled),
+                    .createDocumentNumberField(mrzLines, .td1, "R", isOCRCorrectionEnabled),
                     .validateComposition([
                         .init(value: "St", rawValue: "StringRawValue<<", checkDigit: nil, type: .documentNumber),
-                        .init(value: "St", rawValue: "StringRawValue<<", checkDigit: nil, type: .documentNumber),
+                        .init(value: "RUS", rawValue: "StringRawValue<<", checkDigit: nil, type: .optionalData(.one)),
                         .init(value: Date(timeIntervalSince1970: 0).formatted(), rawValue: "DateRawValue<<", checkDigit: nil, type: .date(.birth)),
-                        .init(value: Date(timeIntervalSince1970: 0).formatted(), rawValue: "DateRawValue<<", checkDigit: nil, type: .date(.birth)),
-                        .init(value: "St", rawValue: "StringRawValue<<", checkDigit: nil, type: .documentNumber)
+                        .init(value: Date(timeIntervalSince1970: 0).formatted(), rawValue: "DateRawValue<<", checkDigit: nil, type: .date(.expiry)),
+                        .init(value: "RUS", rawValue: "StringRawValue<<", checkDigit: nil, type: .optionalData(.two))
                     ], checkDigit: 0)
                 ]
             )
@@ -201,17 +286,25 @@ final class MRZCodeCreatorTests: XCTestCase {
         withDependencies {
             $0.fieldCreator.createStringField = { @Sendable lines, format, type, isOCRCorrectionEnabled in
                 events.withValue { $0.append(.createField(lines, format, type, isOCRCorrectionEnabled)) }
-                return .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: .documentNumber)
+                return .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: type)
+            }
+            $0.fieldCreator.createDocumentNumberField = { @Sendable lines, format, russianNationalPassportHiddenCharacter, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.createDocumentNumberField(lines, format, russianNationalPassportHiddenCharacter, isOCRCorrectionEnabled)) }
+                return .init(value: "St", rawValue: "StringRawValue<<", checkDigit: 0, type: .documentNumber)
+            }
+            $0.fieldCreator.createCharacterField = { @Sendable lines, format, type, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.createField(lines, format, type, isOCRCorrectionEnabled)) }
+                return .init(value: "S", rawValue: "StringRawValue<<", checkDigit: 0, type: type)
             }
             $0.fieldCreator.createDateField = { @Sendable lines, format, dateType, isOCRCorrectionEnabled in
                 events.withValue { $0.append(.createField(lines, format, .date(dateType), isOCRCorrectionEnabled)) }
-                return .init(value: .init(timeIntervalSince1970: 0), rawValue: "DateRawValue<<", checkDigit: 0, type: .date(.birth))
+                return .init(value: .init(timeIntervalSince1970: 0), rawValue: "DateRawValue<<", checkDigit: 0, type: .date(dateType))
             }
-            $0.fieldCreator.createNamesField = { @Sendable lines, format, isOCRCorrectionEnabled in
-                events.withValue { $0.append(.createField(lines, format, .names, isOCRCorrectionEnabled)) }
+            $0.fieldCreator.createNamesField = { @Sendable lines, format, russianNationalPassportHiddenCharacter, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.createNamesField(lines, format, russianNationalPassportHiddenCharacter, isOCRCorrectionEnabled)) }
                 return .init(value: .init(surnames: "surnames", givenNames: "given names"), rawValue: "NamesRawValue<<", checkDigit: 0, type: .names)
             }
-            $0.fieldCreator.createIntField = { @Sendable lines, format, isOCRCorrectionEnabled in
+            $0.fieldCreator.createFinalCheckDigitField = { @Sendable lines, format, isOCRCorrectionEnabled in
                 events.withValue { $0.append(.createField(lines, format, .finalCheckDigit, isOCRCorrectionEnabled)) }
                 return .init(value: 0, rawValue: "IntRawValue<<", checkDigit: 0, type: .finalCheckDigit)
             }
@@ -262,21 +355,22 @@ final class MRZCodeCreatorTests: XCTestCase {
                 [
                     createFieldEvent(.documentType),
                     createFieldEvent(.countryCode),
-                    createFieldEvent(.documentNumber),
                     createFieldEvent(.date(.birth)),
-                    createFieldEvent(.date(.expiry)),
                     createFieldEvent(.sex),
                     createFieldEvent(.nationality),
-                    createFieldEvent(.names),
+                    createFieldEvent(.date(.expiry)),
+                    createFieldEvent(.documentTypeAdditional),
                     createFieldEvent(.optionalData(.one)),
                     createFieldEvent(.optionalData(.two)),
                     createFieldEvent(.finalCheckDigit),
+                    .createNamesField(mrzLines, .td2(isVisaDocument: false), false, isOCRCorrectionEnabled),
+                    .createDocumentNumberField(mrzLines, .td2(isVisaDocument: false), nil, isOCRCorrectionEnabled),
                     .validateComposition([
-                        .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: .documentNumber),
+                        .init(value: "St", rawValue: "StringRawValue<<", checkDigit: 0, type: .documentNumber),
                         .init(value: Date(timeIntervalSince1970: 0).formatted(), rawValue: "DateRawValue<<", checkDigit: 0, type: .date(.birth)),
-                        .init(value: Date(timeIntervalSince1970: 0).formatted(), rawValue: "DateRawValue<<", checkDigit: 0, type: .date(.birth)),
-                        .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: .documentNumber),
-                        .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: .documentNumber)
+                        .init(value: Date(timeIntervalSince1970: 0).formatted(), rawValue: "DateRawValue<<", checkDigit: 0, type: .date(.expiry)),
+                        .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: .optionalData(.one)),
+                        .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: .optionalData(.two))
                     ], checkDigit: 0)
                 ]
             )
@@ -289,17 +383,25 @@ final class MRZCodeCreatorTests: XCTestCase {
         withDependencies {
             $0.fieldCreator.createStringField = { @Sendable lines, format, type, isOCRCorrectionEnabled in
                 events.withValue { $0.append(.createField(lines, format, type, isOCRCorrectionEnabled)) }
-                return .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: .documentNumber)
+                return .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: type)
+            }
+            $0.fieldCreator.createDocumentNumberField = { @Sendable lines, format, russianNationalPassportHiddenCharacter, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.createDocumentNumberField(lines, format, russianNationalPassportHiddenCharacter, isOCRCorrectionEnabled)) }
+                return .init(value: "St", rawValue: "StringRawValue<<", checkDigit: 0, type: .documentNumber)
+            }
+            $0.fieldCreator.createCharacterField = { @Sendable lines, format, type, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.createField(lines, format, type, isOCRCorrectionEnabled)) }
+                return .init(value: "S", rawValue: "StringRawValue<<", checkDigit: 0, type: type)
             }
             $0.fieldCreator.createDateField = { @Sendable lines, format, dateType, isOCRCorrectionEnabled in
                 events.withValue { $0.append(.createField(lines, format, .date(dateType), isOCRCorrectionEnabled)) }
-                return .init(value: .init(timeIntervalSince1970: 0), rawValue: "DateRawValue<<", checkDigit: 0, type: .date(.birth))
+                return .init(value: .init(timeIntervalSince1970: 0), rawValue: "DateRawValue<<", checkDigit: 0, type: .date(dateType))
             }
-            $0.fieldCreator.createNamesField = { @Sendable lines, format, isOCRCorrectionEnabled in
-                events.withValue { $0.append(.createField(lines, format, .names, isOCRCorrectionEnabled)) }
+            $0.fieldCreator.createNamesField = { @Sendable lines, format, russianNationalPassportHiddenCharacter, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.createNamesField(lines, format, russianNationalPassportHiddenCharacter, isOCRCorrectionEnabled)) }
                 return .init(value: .init(surnames: "surnames", givenNames: "given names"), rawValue: "NamesRawValue<<", checkDigit: 0, type: .names)
             }
-            $0.fieldCreator.createIntField = { @Sendable lines, format, isOCRCorrectionEnabled in
+            $0.fieldCreator.createFinalCheckDigitField = { @Sendable lines, format, isOCRCorrectionEnabled in
                 events.withValue { $0.append(.createField(lines, format, .finalCheckDigit, isOCRCorrectionEnabled)) }
                 return .init(value: 0, rawValue: "IntRawValue<<", checkDigit: 0, type: .finalCheckDigit)
             }
@@ -351,8 +453,8 @@ final class MRZCodeCreatorTests: XCTestCase {
                     birthdate: .init(timeIntervalSince1970: 0),
                     sex: .unspecified,
                     expiryDate: .init(timeIntervalSince1970: 0),
-                    optionalData: "StringValue",
-                    optionalData2: "StringValue"
+                    optionalData: "test",
+                    optionalData2: "test"
                 )
             )
 
@@ -369,21 +471,22 @@ final class MRZCodeCreatorTests: XCTestCase {
                 [
                     createFieldEvent(.documentType),
                     createFieldEvent(.countryCode),
-                    createFieldEvent(.documentNumber),
                     createFieldEvent(.date(.birth)),
-                    createFieldEvent(.date(.expiry)),
                     createFieldEvent(.sex),
                     createFieldEvent(.nationality),
-                    createFieldEvent(.names),
+                    createFieldEvent(.date(.expiry)),
+                    createFieldEvent(.documentTypeAdditional),
                     createFieldEvent(.optionalData(.one)),
                     createFieldEvent(.optionalData(.two)),
                     createFieldEvent(.finalCheckDigit),
+                    .createNamesField(mrzLines, .td3(isVisaDocument: false), false, isOCRCorrectionEnabled),
+                    .createDocumentNumberField(mrzLines, .td3(isVisaDocument: false), nil, isOCRCorrectionEnabled),
                     .validateComposition([
-                        .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: .documentNumber),
+                        .init(value: "St", rawValue: "StringRawValue<<", checkDigit: 0, type: .documentNumber),
                         .init(value: Date(timeIntervalSince1970: 0).formatted(), rawValue: "DateRawValue<<", checkDigit: 0, type: .date(.birth)),
-                        .init(value: Date(timeIntervalSince1970: 0).formatted(), rawValue: "DateRawValue<<", checkDigit: 0, type: .date(.birth)),
-                        .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: .documentNumber),
-                        .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: .documentNumber)
+                        .init(value: Date(timeIntervalSince1970: 0).formatted(), rawValue: "DateRawValue<<", checkDigit: 0, type: .date(.expiry)),
+                        .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: .optionalData(.one)),
+                        .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: .optionalData(.two))
                     ], checkDigit: 0),
                     .findMatchingStrings(
                         [
@@ -404,17 +507,25 @@ final class MRZCodeCreatorTests: XCTestCase {
         withDependencies {
             $0.fieldCreator.createStringField = { @Sendable lines, format, type, isOCRCorrectionEnabled in
                 events.withValue { $0.append(.createField(lines, format, type, isOCRCorrectionEnabled)) }
-                return .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: .documentNumber)
+                return .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: type)
+            }
+            $0.fieldCreator.createDocumentNumberField = { @Sendable lines, format, russianNationalPassportHiddenCharacter, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.createDocumentNumberField(lines, format, russianNationalPassportHiddenCharacter, isOCRCorrectionEnabled)) }
+                return .init(value: "St", rawValue: "StringRawValue<<", checkDigit: 0, type: .documentNumber)
+            }
+            $0.fieldCreator.createCharacterField = { @Sendable lines, format, type, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.createField(lines, format, type, isOCRCorrectionEnabled)) }
+                return .init(value: "S", rawValue: "StringRawValue<<", checkDigit: 0, type: type)
             }
             $0.fieldCreator.createDateField = { @Sendable lines, format, dateType, isOCRCorrectionEnabled in
                 events.withValue { $0.append(.createField(lines, format, .date(dateType), isOCRCorrectionEnabled)) }
-                return .init(value: .init(timeIntervalSince1970: 0), rawValue: "DateRawValue<<", checkDigit: 0, type: .date(.birth))
+                return .init(value: .init(timeIntervalSince1970: 0), rawValue: "DateRawValue<<", checkDigit: 0, type: .date(dateType))
             }
-            $0.fieldCreator.createNamesField = { @Sendable lines, format, isOCRCorrectionEnabled in
-                events.withValue { $0.append(.createField(lines, format, .names, isOCRCorrectionEnabled)) }
+            $0.fieldCreator.createNamesField = { @Sendable lines, format, russianNationalPassportHiddenCharacter, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.createNamesField(lines, format, russianNationalPassportHiddenCharacter, isOCRCorrectionEnabled)) }
                 return .init(value: .init(surnames: "surnames", givenNames: "given names"), rawValue: "NamesRawValue<<", checkDigit: 0, type: .names)
             }
-            $0.fieldCreator.createIntField = { @Sendable lines, format, isOCRCorrectionEnabled in
+            $0.fieldCreator.createFinalCheckDigitField = { @Sendable lines, format, isOCRCorrectionEnabled in
                 events.withValue { $0.append(.createField(lines, format, .finalCheckDigit, isOCRCorrectionEnabled)) }
                 return .init(value: 0, rawValue: "IntRawValue<<", checkDigit: 0, type: .finalCheckDigit)
             }
@@ -469,21 +580,22 @@ final class MRZCodeCreatorTests: XCTestCase {
                 [
                     createFieldEvent(.documentType),
                     createFieldEvent(.countryCode),
-                    createFieldEvent(.documentNumber),
                     createFieldEvent(.date(.birth)),
-                    createFieldEvent(.date(.expiry)),
                     createFieldEvent(.sex),
                     createFieldEvent(.nationality),
-                    createFieldEvent(.names),
+                    createFieldEvent(.date(.expiry)),
+                    createFieldEvent(.documentTypeAdditional),
                     createFieldEvent(.optionalData(.one)),
                     createFieldEvent(.optionalData(.two)),
                     createFieldEvent(.finalCheckDigit),
+                    .createNamesField(mrzLines, .td3(isVisaDocument: true), false, isOCRCorrectionEnabled),
+                    .createDocumentNumberField(mrzLines, .td3(isVisaDocument: true), nil, isOCRCorrectionEnabled),
                     .validateComposition([
-                        .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: .documentNumber),
+                        .init(value: "St", rawValue: "StringRawValue<<", checkDigit: 0, type: .documentNumber),
                         .init(value: Date(timeIntervalSince1970: 0).formatted(), rawValue: "DateRawValue<<", checkDigit: 0, type: .date(.birth)),
-                        .init(value: Date(timeIntervalSince1970: 0).formatted(), rawValue: "DateRawValue<<", checkDigit: 0, type: .date(.birth)),
-                        .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: .documentNumber),
-                        .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: .documentNumber)
+                        .init(value: Date(timeIntervalSince1970: 0).formatted(), rawValue: "DateRawValue<<", checkDigit: 0, type: .date(.expiry)),
+                        .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: .optionalData(.one)),
+                        .init(value: "StringValue", rawValue: "StringRawValue<<", checkDigit: 0, type: .optionalData(.two))
                     ], checkDigit: 0),
                     .findMatchingStrings(
                         [

@@ -37,20 +37,35 @@ extension MRZCode.DocumentType {
         case .id:
             return "I"
         case .undefined:
-            return "_"
+            return "<"
+        }
+    }
+}
+
+extension MRZCode.DocumentTypeAdditional {
+    var identifier: Character {
+        switch self {
+        case .national:
+            return "N"
+        case .diplomatic:
+            return "D"
         }
     }
 }
 
 extension MRZCode.Sex {
-    var identifier: [String] {
+    var identifier: Character {
         switch self {
         case .male:
-            return ["M"]
+            return "M"
         case .female:
-            return ["F"]
+            return "F"
         case .unspecified:
-            return ["X", "<", " "]
+            return "<"
         }
     }
+}
+
+extension MRZCode {
+    static let russiaCountryCode = "RUS"
 }

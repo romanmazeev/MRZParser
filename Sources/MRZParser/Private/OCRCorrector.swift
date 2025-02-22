@@ -7,7 +7,6 @@
 
 import Dependencies
 import DependenciesMacros
-import Foundation
 
 @DependencyClient
 struct OCRCorrector: Sendable {
