@@ -1,5 +1,5 @@
-[![Build and test](https://github.com/romanmazeev/MRZParser/actions/workflows/Build%20and%20test.yml/badge.svg)](https://github.com/appintheair/MRZParser/actions/workflows/Build%20and%20test.yml)
-[![spm](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)](https://github.com/appintheair/MRZParser/blob/develop/Package.swift)
+[![Build and test](https://github.com/romanmazeev/MRZParser/actions/workflows/Build%20and%20test.yml/badge.svg)](https://github.com/romanmazeev/MRZParser/actions/workflows/Build%20and%20test.yml)
+[![spm](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)](https://github.com/romanmazeev/MRZParser/blob/develop/Package.swift)
 
 # MRZParser
 [MRZ](https://en.wikipedia.org/wiki/Machine-readable_passport) code parser for TD1(ID cards), TD2, TD3 (Passports), MRVA (Visas type A), MRVB (Visas type B) types.
@@ -13,7 +13,7 @@ Document type | The first letter shall be 'I', 'A' or 'C' |  <- | Normally 'P' f
 Country code | 3 letters code (ISO 3166-1) or country name (in English) | <- | <- | <- | <- |
 Document number | Document number | <- | <- | <- | <- |
 Birth date | Format: YYMMDD | <- | <- | <- | <- |
-Sex | Genre. Male: 'M', Female: 'F' or Undefined: 'X', "<" or "" | <- | <- | <- | <- |
+Sex | Genre. Male: 'M', Female: 'F' or Undefined: 'X', "<" or nil| <- | <- | <- | <- |
 Expiry date  | Format: YYMMDD | <- | <- | <- | <- |
 Nationality | 3 letters code (ISO 3166-1) or country name (in English) | <- | <- | <- | <- |
 Surname | Holder primary identifier(s) | <- | Primary identifier(s) | <- | <- |
@@ -25,7 +25,7 @@ Optional data 2 | Optional personal data at the discretion of the issuing State.
 ### Swift Package Manager
 ```swift
 dependencies: [
-    .package(url: "https://github.com/appintheair/MRZParser.git", .upToNextMajor(from: "1.3.1"))
+    .package(url: "https://github.com/romanmazeev/MRZParser.git", .upToNextMajor(from: "1.3.1"))
 ]
 ```
 ## Usage
@@ -53,8 +53,8 @@ Expiry date  | 2012.04.15
 Nationality | UTO
 Surname | ERIKSSON
 Given names | ANNA MARIA
-Optional data | ""
-Optional data 2 | ""
+Optional data | nil
+Optional data 2 | nil
 
 ### TD2
 #### Input
@@ -74,7 +74,7 @@ Expiry date  | 2012.04.15
 Nationality | UTO
 Surname | ERIKSSON
 Given names | ANNA MARIA
-Optional data | ""
+Optional data | nil
 
 ### TD3 (Passport)
 #### Input
@@ -134,7 +134,7 @@ Expiry date  | 1996.12.10
 Nationality | XXX
 Surname | ERIKSSON
 Given names | ANNA MARIA
-Optional data | ""
+Optional data | nil
 
 ## Credits
 
