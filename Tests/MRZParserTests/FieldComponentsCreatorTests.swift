@@ -283,7 +283,7 @@ final class FieldComponentsCreatorTests: XCTestCase {
             }
         } operation: {
             let result = try XCTUnwrap(FieldComponentsCreator.liveValue.getRawValueAndCheckDigit(
-                lines: ["850101"],
+                lines: ["8a5c010"],
                 position: .init(line: 0, range: 0..<5),
                 contentType: .mixed,
                 shouldValidateCheckDigit: true,
@@ -297,7 +297,7 @@ final class FieldComponentsCreatorTests: XCTestCase {
                 events.value,
                 [
                     .correct(
-                        "85010",
+                        "8A5C0",
                         .mixed
                     ),
                     .isContentTypeValid(
@@ -346,7 +346,7 @@ final class FieldComponentsCreatorTests: XCTestCase {
             }
         } operation: {
             XCTAssertNil(FieldComponentsCreator.liveValue.getRawValueAndCheckDigit(
-                lines: ["850101"],
+                lines: ["8A!a0O"],
                 position: .init(line: 0, range: 0..<5),
                 contentType: .mixed,
                 shouldValidateCheckDigit: true,
@@ -357,7 +357,7 @@ final class FieldComponentsCreatorTests: XCTestCase {
                 events.value,
                 [
                     .correct(
-                        "85010",
+                        "8A!A0",
                         .mixed
                     ),
                     .isContentTypeValid(
@@ -365,7 +365,7 @@ final class FieldComponentsCreatorTests: XCTestCase {
                         .mixed
                     ),
                     .correct(
-                        "1",
+                        "O",
                         .digits
                     ),
                     .isValueValid(

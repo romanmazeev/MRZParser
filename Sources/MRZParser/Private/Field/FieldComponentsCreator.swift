@@ -87,7 +87,7 @@ extension FieldComponentsCreator: DependencyKey {
             contentType: FieldType.ContentType,
             isOCRCorrectionEnabled: Bool
         ) -> String? {
-            let value = string.substring(range.lowerBound, to: range.upperBound - 1)
+            let value = string.substring(range.lowerBound, to: range.upperBound - 1).uppercased()
 
             let correctedValue = {
                 if isOCRCorrectionEnabled {
