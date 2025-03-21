@@ -11,12 +11,12 @@ import Foundation
 
 @DependencyClient
 struct CyrillicNameConverter: Sendable {
-    var convert: @Sendable (String) -> String = { _ in "" }
+    var convert: @Sendable (_ name: String, _ isOCRCorrectionEnabled: Bool) -> String = { _, _  in "" }
 }
 
 extension CyrillicNameConverter: DependencyKey {
     static var liveValue: Self {
-        return .init {
+        return .init { name, isOCRCorrectionEnabled in
             let convert: (String) -> String = {
                 $0
                     .replace("A", with: "А")
@@ -52,16 +52,20 @@ extension CyrillicNameConverter: DependencyKey {
                     .replace("6", with: "Э")
                     .replace("7", with: "Ю")
                     .replace("8", with: "Я")
-
             }
 
             // Convert to cyrilic
-            let convertedName = convert($0)
-            // Correct digits to english letters
-            @Dependency(\.ocrCorrector) var ocrCorrector
-            let correctedName = ocrCorrector.correct(string: convertedName, contentType: .letters)
-            // Correct english letters to cyrilic
-            return convert(correctedName)
+            let convertedName = convert(name)
+
+            if isOCRCorrectionEnabled {
+                // Correct digits to english letters
+                @Dependency(\.ocrCorrector) var ocrCorrector
+                let correctedName = ocrCorrector.correct(string: convertedName, contentType: .letters)
+                // Correct english letters to cyrilic
+                return convert(correctedName)
+            } else {
+                return convertedName
+            }
         }
     }
 }

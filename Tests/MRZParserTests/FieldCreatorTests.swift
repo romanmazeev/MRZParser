@@ -19,7 +19,7 @@ final class FieldCreatorTests: XCTestCase {
             _ shouldValidateCheckDigit: Bool,
             _ isOCRCorrectionEnabled: Bool
         )
-        case convert(String)
+        case convert(_ name: String, _ isOCRCorrectionEnabled: Bool)
         case isContentTypeValid(_ value: String, _ contentType: FieldType.ContentType)
     }
 
@@ -288,8 +288,8 @@ final class FieldCreatorTests: XCTestCase {
                 events.withValue { $0.append(.getRawValueAndCheckDigit(lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled)) }
                 return ("test", nil)
             }
-            $0.cyrillicNameConverter.convert = { @Sendable rawValue in
-                events.withValue { $0.append(.convert(rawValue)) }
+            $0.cyrillicNameConverter.convert = { @Sendable rawValue, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.convert(rawValue, isOCRCorrectionEnabled)) }
                 return "<surnames<<givenNames<"
             }
             $0.validator.isContentTypeValid = { @Sendable value, contentType in
@@ -319,7 +319,7 @@ final class FieldCreatorTests: XCTestCase {
                         false,
                         true
                     ),
-                    .convert("test"),
+                    .convert("test", true),
                     .isContentTypeValid(
                         "<surnames<<givenNames<",
                         .letters
@@ -337,8 +337,8 @@ final class FieldCreatorTests: XCTestCase {
                 events.withValue { $0.append(.getRawValueAndCheckDigit(lines, format, fieldType, rawValueOCRCorrectionType, isOCRCorrectionEnabled)) }
                 return ("test", nil)
             }
-            $0.cyrillicNameConverter.convert = { @Sendable rawValue in
-                events.withValue { $0.append(.convert(rawValue)) }
+            $0.cyrillicNameConverter.convert = { @Sendable rawValue, isOCRCorrectionEnabled in
+                events.withValue { $0.append(.convert(rawValue, isOCRCorrectionEnabled)) }
                 return "<surnames<<givenNames<"
             }
             $0.validator.isContentTypeValid = { @Sendable value, contentType in
@@ -374,7 +374,7 @@ final class FieldCreatorTests: XCTestCase {
                         false,
                         true
                     ),
-                    .convert("test"),
+                    .convert("test", true),
                     .isContentTypeValid(
                         "<surnames<<givenNames<",
                         .letters

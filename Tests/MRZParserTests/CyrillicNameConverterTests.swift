@@ -16,6 +16,13 @@ final class CyrillicNameConverterTests: XCTestCase {
     }
 
     func testConvert() {
+        XCTAssertEqual(
+            CyrillicNameConverter.liveValue.convert("ABVGDE2JZIQKLMNOPRSTUFHC34WXY96785", false),
+            "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ5"
+        )
+    }
+
+    func testConvertOCRCorrectionEnabled() {
         let events = LockIsolated([Event]())
         let correctedValue = "test"
 
@@ -26,7 +33,7 @@ final class CyrillicNameConverterTests: XCTestCase {
             }
         } operation: {
             XCTAssertEqual(
-                CyrillicNameConverter.liveValue.convert("ABVGDE2JZIQKLMNOPRSTUFHC34WXY96785"),
+                CyrillicNameConverter.liveValue.convert("ABVGDE2JZIQKLMNOPRSTUFHC34WXY96785", true),
                 correctedValue
             )
 

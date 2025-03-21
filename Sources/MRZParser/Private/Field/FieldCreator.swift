@@ -141,7 +141,7 @@ extension FieldCreator: DependencyKey {
                     if isRussianNationalPassport {
                         // Convert to cyrilic
                         @Dependency(\.cyrillicNameConverter) var cyrillicNameConverter
-                        return cyrillicNameConverter.convert(rawValue)
+                        return cyrillicNameConverter.convert(name: rawValue, isOCRCorrectionEnabled: isOCRCorrectionEnabled)
                     } else {
                         return rawValue
                     }
