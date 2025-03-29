@@ -28,7 +28,20 @@ extension MRZCode.Format {
 }
 
 extension MRZCode.DocumentType {
-    var identifier: Character {
+    public init(identifier: Character) {
+        switch identifier {
+        case Self.visa.identifier:
+            self = .visa
+        case Self.passport.identifier:
+            self = .passport
+        case Self.id.identifier:
+            self = .id
+        default:
+            self = .other(identifier)
+        }
+    }
+
+    public var identifier: Character {
         switch self {
         case .visa:
             return "V"
@@ -36,25 +49,49 @@ extension MRZCode.DocumentType {
             return "P"
         case .id:
             return "I"
-        case .undefined:
-            return "<"
+        case .other(let value):
+            return value
         }
     }
 }
 
 extension MRZCode.DocumentTypeAdditional {
-    var identifier: Character {
+    public init(identifier: Character) {
+        switch identifier {
+        case Self.national.identifier:
+            self = .national
+        case Self.diplomatic.identifier:
+            self = .diplomatic
+        default:
+            self = .other(identifier)
+        }
+    }
+
+    public var identifier: Character {
         switch self {
         case .national:
             return "N"
         case .diplomatic:
             return "D"
+        case .other(let value):
+            return value
         }
     }
 }
 
 extension MRZCode.Sex {
-    var identifier: Character {
+    public init(identifier: Character) {
+        switch identifier {
+        case Self.male.identifier:
+            self = .male
+        case Self.female.identifier:
+            self = .female
+        default:
+            self = .other(identifier)
+        }
+    }
+
+    public var identifier: Character {
         switch self {
         case .male:
             return "M"
@@ -62,10 +99,28 @@ extension MRZCode.Sex {
             return "F"
         case .unspecified:
             return "<"
+        case .other(let value):
+            return value
         }
     }
 }
 
-extension MRZCode {
-    static let russiaCountryCode = "RUS"
+extension MRZCode.Country {
+    public init(identifier: String) {
+        switch identifier {
+        case Self.russia.identifier:
+            self = .russia
+        default:
+            self = .other(identifier)
+        }
+    }
+
+    public var identifier: String {
+        switch self {
+        case .russia:
+            return "RUS"
+        case .other(let value):
+            return value
+        }
+    }
 }

@@ -13,22 +13,29 @@ public struct MRZCode: Sendable, Hashable {
         case td1, td2(isVisaDocument: Bool), td3(isVisaDocument: Bool)
     }
 
-    public enum DocumentType: CaseIterable, Sendable {
+    public enum DocumentType: Sendable, Hashable {
         case visa
         case passport
         case id
-        case undefined
+        case other(Character)
     }
 
-    public enum DocumentTypeAdditional: CaseIterable, Sendable {
+    public enum DocumentTypeAdditional: Sendable, Hashable {
         case national
         case diplomatic
+        case other(Character)
     }
 
-    public enum Sex: CaseIterable, Sendable {
+    public enum Country: Sendable, Hashable {
+        case russia
+        case other(String)
+    }
+
+    public enum Sex: Sendable, Hashable {
         case male
         case female
         case unspecified
+        case other(Character)
     }
 
     public struct Names: Sendable, Hashable {
@@ -45,7 +52,7 @@ public struct MRZCode: Sendable, Hashable {
     public let format: Format
     public let documentType: DocumentType
     public let documentTypeAdditional: DocumentTypeAdditional?
-    public let countryCode: String
+    public let country: Country
     public let names: Names
     public let documentNumber: String
     public let nationalityCountryCode: String
@@ -73,7 +80,7 @@ public struct MRZCode: Sendable, Hashable {
             format: code.format,
             documentType: code.documentType,
             documentTypeAdditional: code.documentTypeAdditional,
-            countryCode: code.countryCode,
+            country: code.country,
             names: code.names,
             documentNumber: code.documentNumber,
             nationalityCountryCode: code.nationalityCountryCode,
@@ -90,7 +97,7 @@ public struct MRZCode: Sendable, Hashable {
         format: MRZCode.Format,
         documentType: DocumentType,
         documentTypeAdditional: DocumentTypeAdditional?,
-        countryCode: String,
+        country: Country,
         names: Names,
         documentNumber: String,
         nationalityCountryCode: String,
@@ -104,7 +111,7 @@ public struct MRZCode: Sendable, Hashable {
         self.format = format
         self.documentType = documentType
         self.documentTypeAdditional = documentTypeAdditional
-        self.countryCode = countryCode
+        self.country = country
         self.names = names
         self.documentNumber = documentNumber
         self.nationalityCountryCode = nationalityCountryCode

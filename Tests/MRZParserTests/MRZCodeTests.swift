@@ -61,9 +61,9 @@ private extension MRZCode {
         .init(
             mrzKey: "L898902C3674081221204159",
             format: .td3(isVisaDocument: false),
-            documentType: .undefined,
+            documentType: .other("K"),
             documentTypeAdditional: nil,
-            countryCode: "UTO",
+            country: .other("UTO"),
             names: .init(surnames: "ERIKSSON", givenNames: "ANNA MARIA"),
             documentNumber: "L898902C3",
             nationalityCountryCode: "UTO",
