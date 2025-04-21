@@ -7,6 +7,7 @@
 
 import Dependencies
 import DependenciesMacros
+import Foundation
 
 @DependencyClient
 struct MRZCodeCreator: Sendable {
@@ -114,6 +115,45 @@ extension MRZCodeCreator: DependencyKey {
 
         return .init(
             create: { mrzLines, isOCRCorrectionEnabled in
+                // MARK: Dutch single-line fallback (ISO 18013-1, e.g. D1NLD...)
+                if mrzLines.count == 1, let line = mrzLines.first, line.starts(with: "D1NLD"), line.count >= 30 {
+                    func slice(_ str: String, _ start: Int, _ end: Int) -> String {
+                        let startIdx = str.index(str.startIndex, offsetBy: start)
+                        let endIdx = str.index(str.startIndex, offsetBy: end)
+                        return String(str[startIdx..<endIdx])
+                    }
+
+                    let documentNumber = slice(line, 5, 14)
+                    let birthdateStr = slice(line, 14, 20)
+                    let expiryDateStr = slice(line, 20, 26)
+
+                    let dateFormatter = DateFormatter()
+                    dateFormatter.dateFormat = "yyMMdd"
+                    dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+                    guard
+                        let birthdate = dateFormatter.date(from: birthdateStr),
+                        let expiryDate = dateFormatter.date(from: expiryDateStr)
+                    else {
+                        return nil
+                    }
+
+                    return MRZCode(
+                        mrzKey: documentNumber + birthdateStr + expiryDateStr,
+                        format: .td1, // TODO: Consider defining `dutchSingleLine` format in future refactor
+                        documentType: MRZCode.DocumentType(identifier: "D"),
+                        documentTypeAdditional: nil,
+                        country: MRZCode.Country(identifier: "NLD"),
+                        names: MRZCode.Names(surnames: "<<", givenNames: nil),
+                        documentNumber: documentNumber,
+                        nationalityCountryCode: "NLD",
+                        birthdate: birthdate,
+                        sex: .unspecified,
+                        expiryDate: expiryDate,
+                        optionalData: nil,
+                        optionalData2: nil
+                    )
+                }
+
                 guard let format = createMRZFormat(from: mrzLines) else { return nil }
 
                 @Dependency(\.fieldCreator) var fieldCreator
