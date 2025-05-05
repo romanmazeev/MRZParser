@@ -213,14 +213,14 @@ final class FieldCreatorTests: XCTestCase {
                 FieldCreator.liveValue.createCharacterField(
                     lines: [],
                     format: .td2(isVisaDocument: true),
-                    type: .documentTypeAdditional,
+                    type: .documentSubtype,
                     isOCRCorrectionEnabled: false
                 ),
                 .init(
                     value: "K",
                     rawValue: "K",
                     checkDigit: nil,
-                    type: .documentTypeAdditional
+                    type: .documentSubtype
                 )
             )
 
@@ -278,9 +278,9 @@ final class FieldCreatorTests: XCTestCase {
         }
     }
 
-    // MARK: - Names
+    // MARK: - Name
 
-    func testCreateNamesFieldContentTypeNotValid() {
+    func testCreateNameFieldContentTypeNotValid() {
         let events = LockIsolated([Event]())
 
         withDependencies {
@@ -290,7 +290,7 @@ final class FieldCreatorTests: XCTestCase {
             }
             $0.cyrillicNameConverter.convert = { @Sendable rawValue, isOCRCorrectionEnabled in
                 events.withValue { $0.append(.convert(rawValue, isOCRCorrectionEnabled)) }
-                return "<surnames<<givenNames<"
+                return "<surname<<givenNames<"
             }
             $0.validator.isContentTypeValid = { @Sendable value, contentType in
                 events.withValue { $0.append(.isContentTypeValid(value, contentType)) }
@@ -298,7 +298,7 @@ final class FieldCreatorTests: XCTestCase {
             }
         } operation: {
             XCTAssertNil(
-                FieldCreator.liveValue.createNamesField(
+                FieldCreator.liveValue.createNameField(
                     lines: [],
                     format: .td2(isVisaDocument: true),
                     isRussianNationalPassport: true,
@@ -321,7 +321,7 @@ final class FieldCreatorTests: XCTestCase {
                     ),
                     .convert("test", true),
                     .isContentTypeValid(
-                        "<surnames<<givenNames<",
+                        "<surname<<givenNames<",
                         .letters
                     )
                 ]
@@ -329,7 +329,7 @@ final class FieldCreatorTests: XCTestCase {
         }
     }
 
-    func testCreateNamesField() {
+    func testCreateNameField() {
         let events = LockIsolated([Event]())
 
         withDependencies {
@@ -339,7 +339,7 @@ final class FieldCreatorTests: XCTestCase {
             }
             $0.cyrillicNameConverter.convert = { @Sendable rawValue, isOCRCorrectionEnabled in
                 events.withValue { $0.append(.convert(rawValue, isOCRCorrectionEnabled)) }
-                return "<surnames<<givenNames<"
+                return "<surname<<givenNames<"
             }
             $0.validator.isContentTypeValid = { @Sendable value, contentType in
                 events.withValue { $0.append(.isContentTypeValid(value, contentType)) }
@@ -347,17 +347,17 @@ final class FieldCreatorTests: XCTestCase {
             }
         } operation: {
             XCTAssertEqual(
-                FieldCreator.liveValue.createNamesField(
+                FieldCreator.liveValue.createNameField(
                     lines: [],
                     format: .td3(isVisaDocument: true),
                     isRussianNationalPassport: true,
                     isOCRCorrectionEnabled: true
                 ),
                 .init(
-                    value: .init(surnames: "surnames", givenNames: "givenNames"),
+                    value: .init(surname: "surname", givenNames: "givenNames"),
                     rawValue: "test",
                     checkDigit: nil,
-                    type: .names
+                    type: .name
                 )
             )
 
@@ -376,7 +376,7 @@ final class FieldCreatorTests: XCTestCase {
                     ),
                     .convert("test", true),
                     .isContentTypeValid(
-                        "<surnames<<givenNames<",
+                        "<surname<<givenNames<",
                         .letters
                     )
                 ]
@@ -384,7 +384,7 @@ final class FieldCreatorTests: XCTestCase {
         }
     }
 
-    func testCreateNamesFieldWithoutGivenName() {
+    func testCreateNameFieldWithoutGivenNames() {
         let events = LockIsolated([Event]())
 
         withDependencies {
@@ -398,17 +398,17 @@ final class FieldCreatorTests: XCTestCase {
             }
         } operation: {
             XCTAssertEqual(
-                FieldCreator.liveValue.createNamesField(
+                FieldCreator.liveValue.createNameField(
                     lines: [],
                     format: .td3(isVisaDocument: false),
                     isRussianNationalPassport: false,
                     isOCRCorrectionEnabled: true
                 ),
                 .init(
-                    value: .init(surnames: "surname", givenNames: nil),
+                    value: .init(surname: "surname", givenNames: nil),
                     rawValue: "surname",
                     checkDigit: nil,
-                    type: .names
+                    type: .name
                 )
             )
 
@@ -434,7 +434,7 @@ final class FieldCreatorTests: XCTestCase {
         }
     }
 
-    func testCreateNamesFieldNoValue() {
+    func testCreateNameFieldNoValue() {
         let events = LockIsolated([Event]())
 
         withDependencies {
@@ -444,7 +444,7 @@ final class FieldCreatorTests: XCTestCase {
             }
         } operation: {
             XCTAssertNil(
-                FieldCreator.liveValue.createNamesField(
+                FieldCreator.liveValue.createNameField(
                     lines: [],
                     format: .td1,
                     isRussianNationalPassport: false,

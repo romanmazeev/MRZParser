@@ -16,13 +16,11 @@ public struct MRZCode: Sendable, Hashable {
     public enum DocumentType: Sendable, Hashable {
         case visa
         case passport
-        case id
         case other(Character)
     }
 
-    public enum DocumentTypeAdditional: Sendable, Hashable {
+    public enum DocumentSubtype: Sendable, Hashable {
         case national
-        case diplomatic
         case other(Character)
     }
 
@@ -38,12 +36,12 @@ public struct MRZCode: Sendable, Hashable {
         case other(Character)
     }
 
-    public struct Names: Sendable, Hashable {
-        public let surnames: String
+    public struct Name: Sendable, Hashable {
+        public let surname: String
         public let givenNames: String?
 
-        public init(surnames: String, givenNames: String?) {
-            self.surnames = surnames
+        public init(surname: String, givenNames: String?) {
+            self.surname = surname
             self.givenNames = givenNames
         }
     }
@@ -51,9 +49,9 @@ public struct MRZCode: Sendable, Hashable {
     public let mrzKey: String
     public let format: Format
     public let documentType: DocumentType
-    public let documentTypeAdditional: DocumentTypeAdditional?
-    public let country: Country
-    public let names: Names
+    public let documentSubtype: DocumentSubtype?
+    public let issuingCountry: Country
+    public let name: Name
     public let documentNumber: String
     public let nationalityCountryCode: String
     public let birthdate: Date
@@ -79,9 +77,9 @@ public struct MRZCode: Sendable, Hashable {
             mrzKey: code.mrzKey,
             format: code.format,
             documentType: code.documentType,
-            documentTypeAdditional: code.documentTypeAdditional,
-            country: code.country,
-            names: code.names,
+            documentSubtype: code.documentSubtype,
+            issuingCountry: code.issuingCountry,
+            name: code.name,
             documentNumber: code.documentNumber,
             nationalityCountryCode: code.nationalityCountryCode,
             birthdate: code.birthdate,
@@ -96,9 +94,9 @@ public struct MRZCode: Sendable, Hashable {
         mrzKey: String,
         format: MRZCode.Format,
         documentType: DocumentType,
-        documentTypeAdditional: DocumentTypeAdditional?,
-        country: Country,
-        names: Names,
+        documentSubtype: DocumentSubtype?,
+        issuingCountry: Country,
+        name: Name,
         documentNumber: String,
         nationalityCountryCode: String,
         birthdate: Date,
@@ -110,9 +108,9 @@ public struct MRZCode: Sendable, Hashable {
         self.mrzKey = mrzKey
         self.format = format
         self.documentType = documentType
-        self.documentTypeAdditional = documentTypeAdditional
-        self.country = country
-        self.names = names
+        self.documentSubtype = documentSubtype
+        self.issuingCountry = issuingCountry
+        self.name = name
         self.documentNumber = documentNumber
         self.nationalityCountryCode = nationalityCountryCode
         self.birthdate = birthdate

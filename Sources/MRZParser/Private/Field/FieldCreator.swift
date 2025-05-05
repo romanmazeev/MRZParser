@@ -33,12 +33,12 @@ struct FieldCreator: Sendable {
         _ isOCRCorrectionEnabled: Bool
     ) -> Field<Character>?
 
-    var createNamesField: @Sendable (
+    var createNameField: @Sendable (
         _ lines: [String],
         _ format: MRZCode.Format,
         _ isRussianNationalPassport: Bool,
         _ isOCRCorrectionEnabled: Bool
-    ) -> Field<MRZCode.Names>?
+    ) -> Field<MRZCode.Name>?
 
     var createDateField: @Sendable (
         _ lines: [String],
@@ -119,8 +119,8 @@ extension FieldCreator: DependencyKey {
 
                 return .init(value: character, rawValue: rawValue, checkDigit: checkDigit, type: type)
             },
-            createNamesField: { lines, format, isRussianNationalPassport, isOCRCorrectionEnabled in
-                let type: FieldType = .names
+            createNameField: { lines, format, isRussianNationalPassport, isOCRCorrectionEnabled in
+                let type: FieldType = .name
                 guard let position = type.position(for: format) else {
                     assertionFailure("Document number position not found for format: \(format)")
                     return nil
@@ -157,7 +157,7 @@ extension FieldCreator: DependencyKey {
                     .map { $0.replace("<", with: " ") }
 
                 return .init(
-                    value: .init(surnames: identifiers[0], givenNames: identifiers.count > 1 ? identifiers[1] : nil),
+                    value: .init(surname: identifiers[0], givenNames: identifiers.count > 1 ? identifiers[1] : nil),
                     rawValue: rawValue,
                     checkDigit: checkDigit,
                     type: type

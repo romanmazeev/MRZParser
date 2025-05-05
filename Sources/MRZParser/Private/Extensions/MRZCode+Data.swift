@@ -34,8 +34,6 @@ extension MRZCode.DocumentType {
             self = .visa
         case Self.passport.identifier:
             self = .passport
-        case Self.id.identifier:
-            self = .id
         default:
             self = .other(identifier)
         }
@@ -47,21 +45,17 @@ extension MRZCode.DocumentType {
             return "V"
         case .passport:
             return "P"
-        case .id:
-            return "I"
         case .other(let value):
             return value
         }
     }
 }
 
-extension MRZCode.DocumentTypeAdditional {
+extension MRZCode.DocumentSubtype {
     public init(identifier: Character) {
         switch identifier {
         case Self.national.identifier:
             self = .national
-        case Self.diplomatic.identifier:
-            self = .diplomatic
         default:
             self = .other(identifier)
         }
@@ -71,8 +65,6 @@ extension MRZCode.DocumentTypeAdditional {
         switch self {
         case .national:
             return "N"
-        case .diplomatic:
-            return "D"
         case .other(let value):
             return value
         }

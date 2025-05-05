@@ -19,13 +19,13 @@ enum FieldType: Hashable {
     }
 
     case documentType
-    case documentTypeAdditional
-    case countryCode
+    case documentSubtype
+    case issuingCountryCode
     case documentNumber
     case date(DateFieldType)
     case sex
-    case nationality
-    case names
+    case nationalityCountryCode
+    case name
     case optionalData(OptionalFieldType)
     case finalCheckDigit
 }
@@ -46,9 +46,9 @@ extension FieldType {
         switch self {
         case .documentType:
             return .init(line: 0, range: 0..<1)
-        case .documentTypeAdditional:
+        case .documentSubtype:
             return .init(line: 0, range: 1..<2)
-        case .countryCode:
+        case .issuingCountryCode:
             return .init(line: 0, range: 2..<5)
         case .documentNumber:
             switch format {
@@ -78,14 +78,14 @@ extension FieldType {
             case .td2, .td3:
                 return .init(line: 1, range: 20..<21)
             }
-        case .nationality:
+        case .nationalityCountryCode:
             switch format {
             case .td1:
                 return .init(line: 1, range: 15..<18)
             case .td2, .td3:
                 return .init(line: 1, range: 10..<13)
             }
-        case .names:
+        case .name:
             switch format {
             case .td1:
                 return .init(line: 2, range: 0..<29)
@@ -148,13 +148,13 @@ extension FieldType {
         isRussianNationalPassport: Bool
     ) -> ContentType {
         switch self {
-        case .names where isRussianNationalPassport:
+        case .name where isRussianNationalPassport:
             .mixed
         case .documentNumber where isRussianNationalPassport:
             .digits
         case .optionalData(.one) where isRussianNationalPassport:
             .digits
-        case .documentType, .documentTypeAdditional, .countryCode, .nationality, .names:
+        case .documentType, .documentSubtype, .issuingCountryCode, .nationalityCountryCode, .name:
             .letters
         case .optionalData, .documentNumber:
             .mixed
@@ -180,7 +180,7 @@ extension FieldType {
     /// If true, the field is followed by a check digit and should be validated
     func shouldValidateCheckDigit(mrzFormat: MRZCode.Format) -> Bool {
         switch self {
-        case .documentType, .documentTypeAdditional, .countryCode, .sex, .nationality, .names, .optionalData(.two), .finalCheckDigit:
+        case .documentType, .documentSubtype, .issuingCountryCode, .sex, .nationalityCountryCode, .name, .optionalData(.two), .finalCheckDigit:
             return false
         case .documentNumber, .date:
             return true

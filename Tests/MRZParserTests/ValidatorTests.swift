@@ -14,7 +14,7 @@ final class ValidatorTests: XCTestCase {
     func testIsCompositionValid() {
         let fields: [Field<String>] = [
             .init(value: "test", rawValue: "S123456<", checkDigit: 10, type: .documentNumber),
-            .init(value: "test2", rawValue: "G<5678", checkDigit: nil, type: .names)
+            .init(value: "test2", rawValue: "G<5678", checkDigit: nil, type: .name)
         ]
 
         XCTAssertTrue(Validator.liveValue.isCompositionValid(validatedFields: fields, finalCheckDigit: 6))

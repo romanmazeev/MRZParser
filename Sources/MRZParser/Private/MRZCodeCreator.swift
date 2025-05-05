@@ -125,10 +125,10 @@ extension MRZCodeCreator: DependencyKey {
                         type: .documentType,
                         isOCRCorrectionEnabled: isOCRCorrectionEnabled
                     ).map({ MRZCode.DocumentType(identifier: $0.value) }),
-                    let country = fieldCreator.createStringField(
+                    let issuingCountry = fieldCreator.createStringField(
                         lines: mrzLines,
                         format: format,
-                        type: .countryCode,
+                        type: .issuingCountryCode,
                         isRussianNationalPassport: false,
                         isOCRCorrectionEnabled: isOCRCorrectionEnabled
                     ).map({ MRZCode.Country(identifier: $0.value) }),
@@ -148,14 +148,14 @@ extension MRZCodeCreator: DependencyKey {
                     return nil
                 }
 
-                let documentTypeAdditional = fieldCreator.createCharacterField(
+                let documentSubtype = fieldCreator.createCharacterField(
                     lines: mrzLines,
                     format: format,
-                    type: .documentTypeAdditional,
+                    type: .documentSubtype,
                     isOCRCorrectionEnabled: isOCRCorrectionEnabled
-                ).map { MRZCode.DocumentTypeAdditional(identifier: $0.value) }
+                ).map { MRZCode.DocumentSubtype(identifier: $0.value) }
 
-                let isRussianNationalPassport = documentType == .passport && documentTypeAdditional == .national && country == .russia
+                let isRussianNationalPassport = documentType == .passport && documentSubtype == .national && issuingCountry == .russia
 
                 var optionalDataField = fieldCreator.createStringField(
                     lines: mrzLines,
@@ -166,7 +166,7 @@ extension MRZCodeCreator: DependencyKey {
                 )
 
                 guard
-                    let namesField = fieldCreator.createNamesField(
+                    let nameField = fieldCreator.createNameField(
                         lines: mrzLines,
                         format: format,
                         isRussianNationalPassport: isRussianNationalPassport,
@@ -181,7 +181,7 @@ extension MRZCodeCreator: DependencyKey {
                     let nationalityField = fieldCreator.createStringField(
                         lines: mrzLines,
                         format: format,
-                        type: .nationality,
+                        type: .nationalityCountryCode,
                         isRussianNationalPassport: isRussianNationalPassport,
                         isOCRCorrectionEnabled: isOCRCorrectionEnabled
                     )
@@ -266,9 +266,9 @@ extension MRZCodeCreator: DependencyKey {
                     mrzKey: mrzKey,
                     format: format,
                     documentType: documentType,
-                    documentTypeAdditional: documentTypeAdditional,
-                    country: country,
-                    names: namesField.value,
+                    documentSubtype: documentSubtype,
+                    issuingCountry: issuingCountry,
+                    name: nameField.value,
                     documentNumber: documentNumberField.value,
                     nationalityCountryCode: nationalityField.value,
                     birthdate: birthdateField.value,
