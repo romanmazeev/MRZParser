@@ -56,6 +56,19 @@ final class MRZCodeCreatorTests: XCTestCase {
         case validateComposition(_ fields: [Field<String>], checkDigit: Int)
         case findMatchingStrings(_ strings: [String]?, _ isCorrectCombination: Bool)
     }
+    func testDutchSingleLine() {
+        let line = "D1NLD1234567890123456789012345"
+
+        let result = withDependencies {
+            $0.mrzCodeCreator = .liveValue
+        } operation: {
+            @Dependency(\.mrzCodeCreator) var creator
+            return creator.create([line], false)
+        }
+        XCTAssertNotNil(result, "MRZ parsing failed for valid Dutch license format")
+        XCTAssertEqual(result?.documentNumber, "123456789", "Document number mismatch")
+        XCTAssertEqual(result?.mrzKey, "123456789012345", "MRZ key mismatch")
+    }
 
     func testCreateNoFirstLine() {
         XCTAssertNil(
