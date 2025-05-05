@@ -11,7 +11,7 @@ let package = Package(
             targets: ["MRZParser"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.8.0"),
+        .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.9.2"),
         .package(url: "https://github.com/pointfreeco/swift-custom-dump.git", from: "1.3.3")
     ],
     targets: [
